@@ -1,0 +1,72 @@
+if(R1==2) then
+[MEMORY_FREE_LIST+R2]=0;
+[SYSTEM_STATUS_TABLE+2]=[SYSTEM_STATUS_TABLE+2]+1;
+R3=1;
+while(R3<16) do
+if([PROCESS_TABLE+16*R3+4]== WAIT_MEM) then
+[PROCESS_TABLE+16*R3+4]=READY;
+endif;
+R3=R3+1;
+endwhile;
+return;
+endif;
+
+if(R1==1) then
+[SYSTEM_STATUS_TABLE+3]=[SYSTEM_STATUS_TABLE+3]+1;
+while([SYSTEM_STATUS_TABLE+2]==0) do
+[PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1]+4]=WAIT_MEM;
+multipush(R1,R2,R3);
+call MOD_5;
+multipop(R1,R2,R3);
+endwhile;
+[SYSTEM_STATUS_TABLE+3]=[SYSTEM_STATUS_TABLE+3]-1;
+[SYSTEM_STATUS_TABLE+2]=[SYSTEM_STATUS_TABLE+2]-1;
+R3=80;
+while(R3<MAX_MEM_PAGE) do
+if([MEMORY_FREE_LIST+R3]==0) then
+[MEMORY_FREE_LIST+R3]=1;
+R0=R3;
+break;
+endif;
+R3=R3+1;
+endwhile;
+return;
+endif;
+
+if(R1==5) then
+R5=0;
+while(R5<16) do
+R4=0;
+while(R4<4) do
+if([DISK_MAP_TABLE+10*R5+4+R4]==R2) then
+if([PAGE_TABLE_BASE+20*R5+2*R4+8]!=-1) then
+R0=[PAGE_TABLE_BASE+20*R5+2*R4+8];
+[MEMORY_FREE_LIST +R0]=[MEMORY_FREE_LIST+R0]+1;
+return;
+endif;
+endif;
+R4=R4+1;
+endwhile;
+R5=R5+1;
+endwhile;
+multipush(R1,R2,R3);
+R1=1;
+call MOD_2;
+multipop(R1,R2,R3);
+multipush(R0,R1,R2,R3);
+R1=2;
+R4=R2;
+R2=[SYSTEM_STATUS_TABLE+1];
+R3=R0;
+call MOD_4;
+multipop(R0,R1,R2,R3);
+return;
+endif;
+
+if(R1==4) then
+if(R2!=-1) then
+[DISK_FREE_LIST+R2]=[DISK_FREE_LIST+R2]-1;
+endif;
+return;
+endif;
+

@@ -1,0 +1,7 @@
+R0=0;
+R1=1;
+while(R1<21) do
+	R0=R0+(R1*R1*R1);
+	R1=R1+1;
+endwhile;
+print R0;

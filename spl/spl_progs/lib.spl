@@ -1,0 +1,16 @@
+inline "PUSH R0";
+inline "PUSH R1";
+inline "PUSH R2";
+inline "PUSH R3";
+R0=[SP-8];
+R1=[SP-9];
+R2=[SP-10];
+if(R2=="Write") then
+inline "MOV R3,5";
+inline "PUSH R3";
+inline "PUSH R1";
+inline "PUSH R0";
+inline "PUSH R2";
+inline "PUSH R2";
+inline "INT 7";
+endif; 

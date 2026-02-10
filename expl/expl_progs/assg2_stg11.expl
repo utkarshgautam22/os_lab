@@ -1,0 +1,22 @@
+type
+	Student {
+	str name;
+	int marks;
+	}
+	endtype
+	int main()
+	{
+	decl
+	int val;
+	Student std;
+	enddecl
+	begin
+	val = initialize();
+	std = alloc(); // r stores address of a node in the heap memory
+	std.name = "john";
+	std.marks = 89;
+	write(std.name);
+	write(std.marks);
+	return 0;
+	end
+	}

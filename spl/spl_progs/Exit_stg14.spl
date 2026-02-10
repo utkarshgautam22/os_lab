@@ -1,0 +1,9 @@
+[PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1]+4]=TERMINATED;
+R9=1;
+while(R9<16) do
+if([PROCESS_TABLE+16*R9+4]!=TERMINATED) then
+call SCHEDULER;
+endif;
+R9=R9+1;
+endwhile;
+halt;

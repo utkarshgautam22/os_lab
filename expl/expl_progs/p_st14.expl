@@ -1,0 +1,26 @@
+int main(){
+decl
+int val,x,flg,tmp;
+enddecl
+
+begin
+val=2;
+while(val<=100) do
+	flg=1;
+	x=2;
+	while(x<val) do
+		tmp=val%x;
+		if (tmp == 0) then
+			flg=0;
+			break;
+		endif;
+		x=x+1;
+	endwhile;
+	if(flg==1) then
+		write(val);
+	endif;
+	val=val+1;
+endwhile;
+return 0;
+end
+}

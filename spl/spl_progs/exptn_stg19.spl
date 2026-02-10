@@ -1,0 +1,46 @@
+breakpoint;
+[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=-1;
+alias userSP R0;
+R0=SP;
+[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+13]=SP;
+SP=[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11]*512-1;
+backup;
+
+if(EC!=0 || userSP==PTLR*512-1) then
+print EC;
+print EIP;
+R1=3;
+R2=[SYSTEM_STATUS_TABLE+1];
+call MOD_1;
+call MOD_5;
+endif;
+
+multipush(R1,R2,R3);
+if(EPN>4) then
+R1=5;
+R2=[DISK_MAP_TABLE+10*[SYSTEM_STATUS_TABLE+1]+EPN];
+call MOD_2;
+[PTBR+2*EPN]=R0;
+[PTBR+2*EPN+1]="1100";
+multipop(R1,R2,R3);
+endif;
+
+if(EPN<5) then
+multipush(R1,R2,R3);
+R1=1;
+call MOD_2;
+[PTBR+2*EPN]=R0;
+[PTBR+2*EPN+1]="1110";
+R1=1;
+call MOD_2;
+[PTBR++2*EPN+2]=R0;
+[PTBR++2*EPN+3]="1110";
+multipop(R1,R2,R3);
+endif;
+//multipop(EIP);
+[PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1]+9]=0;
+restore;
+SP=[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+13];
+SP=SP+1;
+[[PTBR+2*(SP/512)]*512+SP%512]=EIP;
+ireturn;
