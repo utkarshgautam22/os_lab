@@ -1,0 +1,25 @@
+alias curProcessTable R1;
+curProcessTable=PROCESS_TABLE+16*([SYSTEM_STATUS_TABLE+1]);
+[curProcessTable+9]=7;
+alias userSP R0;
+userSP=SP;
+[curProcessTable+13]=userSP;
+SP=[curProcessTable+11]*512-1;
+alias fileDiscriptor R2;
+fileDiscriptor=[[PTBR+2*(userSP-4)/512]*512+(userSP-4)%512];
+if(fileDiscriptor!=-1) then
+[[PTBR+2*(userSP-1)/512]*512+(userSP-1)%512]=-1;
+else
+alias word R3;
+word=[[PTBR+2*(userSP-3)/512]*512+(userSP-3)%512];
+multipush(R0,R1,R2,R3);
+R1=4;
+R2=[SYSTEM_STATUS_TABLE+1];
+R3=word;
+call MOD_4;
+multipop(R0,R1,R2,R3);
+[[PTBR+2*(userSP-1)/512]*512+(userSP-1)%512]=0;
+endif;
+[curProcessTable+9]=0;
+SP=userSP;
+ireturn;

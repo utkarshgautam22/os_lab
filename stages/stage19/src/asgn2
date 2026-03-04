@@ -1,0 +1,4 @@
+do check regs on entring exphandler (has breakpoint)
+run command on breakpoint in mem_mod (included)
+dmt <pid>  -- get disk map table
+pt <pid> -- get page table

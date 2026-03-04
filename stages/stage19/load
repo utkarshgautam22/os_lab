@@ -1,18 +1,18 @@
-load --os ./os_startup.xsm
-load --idle ./idle.xsm
-load --init ./init.xsm
-load --module 0 ./res_mod0.xsm
-load --module 1 ./procss_mod1.xsm
-load --module 2 ./mem_mod2.xsm
-load --module 4 ./dev_mod4.xsm
-load --module 5 ./scheduler_mod5.xsm
-load --module 7 ./boot_mod7.xsm
-load --exhandler ./exhandler.xsm
-load --library ../expl/library.lib
-load --int=timer ./timer.xsm
-load --int=disk ./disk.xsm
-load --int=console ./console.xsm
-load --int=6 ./read_int6.xsm
-load --int=7 ./write_int7.xsm
-load --int=9 ./exec_int9.xsm
-load --int=10 ./exit_int10.xsm
+load --os /home/ug/Desktop/myexpos/stages/stage19/os_startup.xsm
+load --idle /home/ug/Desktop/myexpos/stages/stage19/idle.xsm
+load --init /home/ug/Desktop/myexpos/stages/stage19/init.xsm
+load --module 0 /home/ug/Desktop/myexpos/stages/stage19/res_mod0.xsm
+load --module 1 /home/ug/Desktop/myexpos/stages/stage19/procss_mod1.xsm
+load --module 2 /home/ug/Desktop/myexpos/stages/stage19/mem_mod2.xsm
+load --module 4 /home/ug/Desktop/myexpos/stages/stage19/dev_mod4.xsm
+load --module 5 /home/ug/Desktop/myexpos/stages/stage19/scheduler_mod5.xsm
+load --module 7 /home/ug/Desktop/myexpos/stages/stage19/boot_mod7.xsm
+load --exhandler /home/ug/Desktop/myexpos/stages/stage19/exhandler.xsm
+load --library /home/ug/Desktop/myexpos/expl/library.lib
+load --int=timer /home/ug/Desktop/myexpos/stages/stage19/timer.xsm
+load --int=disk /home/ug/Desktop/myexpos/stages/stage19/disk.xsm
+load --int=console /home/ug/Desktop/myexpos/stages/stage19/console.xsm
+load --int=6 /home/ug/Desktop/myexpos/stages/stage19/read_int6.xsm
+load --int=7 /home/ug/Desktop/myexpos/stages/stage19/write_int7.xsm
+load --int=9 /home/ug/Desktop/myexpos/stages/stage19/exec_int9.xsm
+load --int=10 /home/ug/Desktop/myexpos/stages/stage19/exit_int10.xsm

@@ -1,0 +1,39 @@
+alias CurId R0;
+CurId=[SYSTEM_STATUS_TABLE+1];
+SP=SP+1;
+[SP] = BP;
+alias CurProcessTable R1;
+CurProcessTable = PROCESS_TABLE+CurId*16;
+[CurProcessTable+15] = PTLR;
+[CurProcessTable+14] = PTBR;
+[CurProcessTable+12] = SP%512;
+alias NewId R2;
+NewId=CurId+1;
+while(NewId<16) do
+CurProcessTable = PROCESS_TABLE+NewId*16+4;
+if([CurProcessTable]==READY || [CurProcessTable]==CREATED) then
+break;
+else
+NewId=NewId+1;
+endif;
+endwhile;
+if(NewId==16) then
+NewId=0;
+endif;
+CurProcessTable = PROCESS_TABLE+NewId*16;
+SP=[CurProcessTable+11]*512+[CurProcessTable+12];
+PTBR=[CurProcessTable+14];
+PTLR=[CurProcessTable+15];
+[SYSTEM_STATUS_TABLE+1]=NewId;
+
+if([CurProcessTable+4]==CREATED) then
+SP=[CurProcessTable+13];
+[CurProcessTable+4] = RUNNING;
+[CurProcessTable+9]=0;
+ireturn;
+endif;
+[CurProcessTable+4] = RUNNING;
+BP=[SP];
+SP=SP-1;
+return;
+
