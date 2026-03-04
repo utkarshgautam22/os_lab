@@ -8,6 +8,7 @@ if([PROCESS_TABLE+16*R3+4]== WAIT_MEM) then
 endif;
 R3=R3+1;
 endwhile;
+breakpoint;
 return;
 endif;
 
@@ -30,6 +31,7 @@ break;
 endif;
 R3=R3+1;
 endwhile;
+breakpoint;
 return;
 endif;
 
@@ -64,7 +66,7 @@ return;
 endif;
 
 if(R1==4) then
-if(R2>0) then
+if(R2!=-1) then
 [DISK_FREE_LIST+R2]=[DISK_FREE_LIST+R2]-1;
 endif;
 return;
