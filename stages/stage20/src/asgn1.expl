@@ -1,0 +1,19 @@
+int main(){
+    decl
+    int a;
+    int t;
+    enddecl
+
+    begin
+    a=exposcall("Fork",a,1,1);
+    if(a>0) then
+    t=exposcall("Exec","asgn1_e.xsm",1,1);
+    endif;
+
+    if(a==0) then
+    t=exposcall("Exec","asgn1_o.xsm",1,1);
+    endif;
+    write("forknot");
+    return 0;
+    end
+}

@@ -28,6 +28,7 @@ PTLR=[CurProcessTable+15];
 
 if([CurProcessTable+4]==CREATED) then
 SP=[CurProcessTable+13];
+BP=[[CurProcessTable+11]*512];
 [CurProcessTable+4] = RUNNING;
 [CurProcessTable+9]=0;
 ireturn;

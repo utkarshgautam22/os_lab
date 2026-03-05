@@ -1,0 +1,14 @@
+int main(){
+ decl
+int val;
+enddecl
+
+begin
+val=2;
+while(val<=100) do
+write(val);
+val=val+2;
+endwhile;
+return 0;
+end
+}

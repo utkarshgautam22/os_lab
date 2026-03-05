@@ -1,0 +1,60 @@
+type
+  List
+  {
+    int data;
+    List next;
+  }
+endtype
+
+decl
+    List head;
+enddecl
+
+int main()
+{
+  decl
+    int n, x,a,t;
+    List p, q;
+  enddecl
+
+  begin
+    x = initialize();
+    head=null;
+    n=100;
+    q=head;
+    while (n!=0)  do
+      p=alloc();
+      p.data=101-n;
+      p.next=null;
+
+      if (head==null) then
+      head=p;
+      q=p;
+      else
+      q.next=p;
+      q=q.next;
+      endif;
+      n=n-1;
+    endwhile;
+
+    a=exposcall("Fork",1,1,1);
+    if(a>0) then
+        p=head.next;
+        while(p!=null && p.next!=null)  do
+        write(p.data);
+        p=p.next.next;
+        endwhile;
+    endif;
+
+    if(a==0) then
+        p=head;
+        while(p!=null && p.next!=null)  do
+        write(p.data);
+        p=p.next.next;
+        endwhile;
+    endif;
+    write("forknot");
+    return 1;
+  end
+}
+

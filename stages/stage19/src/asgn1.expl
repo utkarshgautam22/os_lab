@@ -18,11 +18,8 @@ int main()
   enddecl
 
   begin
-    breakpoint;
     x = initialize();
-    breakpoint;
     head=null;
-    breakpoint;
     read(n); 
 
     q=head;

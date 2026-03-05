@@ -1,3 +1,19 @@
+if(R1==1) then
+R2=0;
+while([PROCESS_TABLE+R2*16+4]!=TERMINATED && R2<16) do
+R2=R2+1;
+endwhile;
+R0=-1;
+if(R2<16) then
+[PROCESS_TABLE+16*R2+4]= ALLOCATED;
+[PROCESS_TABLE+16*R2+1]=R2;
+[PROCESS_TABLE+16*R2+14]=PAGE_TABLE_BASE+20*R2;
+[PROCESS_TABLE+16*R2+15]=10;
+R0=R2;
+endif;
+return;
+endif;
+
 if(R1==2) then
 R3=[PROCESS_TABLE+16*R2+11];
 multipush(R1,R2,R3);
