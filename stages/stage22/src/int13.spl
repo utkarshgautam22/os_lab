@@ -1,0 +1,67 @@
+alias userSP R1;
+R1=SP;
+alias syscall R2;
+syscall=[[PTBR+2*((userSP-5)/512)]*512+((userSP-5)%512)];
+[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+13]=SP;
+SP=[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11]*512;
+
+if(syscall==17) then
+
+[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=17;
+
+alias PerProcess R3;
+PerProcess=[PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1]+11]*512+496;
+R2=0;
+while(R2<8) do
+if([PerProcess+2*R2]==-1) then
+break;
+endif;
+R2=R2+1;
+endwhile;
+
+if(R2>7) then
+[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1; //retun if not foound
+else
+multipush(R1,R2,R3);
+R1=ACQUIRE_SEMAPHORE;
+R2=[SYSTEM_STATUS_TABLE+1];
+call MOD_0;
+multipop(R1,R2,R3);
+if(R0==-1) then
+[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-2; //retun if filled
+else
+[PerProcess+2*R2]=1;
+[PerProcess+2*R2+1]=R0;
+[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=R2;
+endif;
+endif;
+
+
+endif;
+
+
+if(syscall==18) then
+[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=18;
+alias PerProcess R3;
+PerProcess=[PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1]+11]*512+496;
+
+R2=[[PTBR+2*((userSP-4)/512)]*512+((userSP-4)%512)];
+
+if(R2>7 || R2<0 || [PerProcess+2*R2]!=1) then
+[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
+else
+multipush(R1,R2,R3);
+R1=RELEASE_SEMAPHORE;
+R2=[PerProcess+2*R2+1];
+R3=[SYSTEM_STATUS_TABLE+1];
+call MOD_0;
+multipop(R1,R2,R3);
+[PerProcess+2*R2]   = -1;
+[PerProcess+2*R2+1] = -1;
+[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=0;
+endif;
+endif;
+
+[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=0;
+SP=userSP;
+ireturn;

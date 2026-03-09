@@ -1,29 +1,37 @@
 #!/bin/bash
 SPL_DIR="/home/ug/Desktop/myexpos/spl"
 EXPL_DIR="/home/ug/Desktop/myexpos/expl"
-STAGE_DIR="/home/ug/Desktop/myexpos/stages/stage19"
+STAGE_DIR="/home/ug/Desktop/myexpos/stages/stage22"
 
 # Compile SPL files
 if [ -d "$SPL_DIR" ]; then
-    cd "$SPL_DIR"
+    cd "$SPL_DIR" || exit 1
     for file in "$STAGE_DIR/src"/*.spl; do
         if [ -f "$file" ]; then
-            ./spl "$file"
+            output=$(./spl "$file" 2>&1)
+            if [ -n "$output" ]; then
+                echo "$output"
+                echo "$file"
+            fi
         fi
     done
 fi
 
 # Compile EXPL files
 if [ -d "$EXPL_DIR" ]; then
-    cd "$EXPL_DIR"
+    cd "$EXPL_DIR" || exit 1
     for file in "$STAGE_DIR/src"/*.expl; do
         if [ -f "$file" ]; then
-            ./expl "$file"
+            output=$(./expl "$file" 2>&1)
+            if [ -n "$output" ]; then
+                echo "$output"
+                echo "$file"
+            fi
         fi
     done
 fi
 
-#move all to stage19
+# Move all to stage directory
 for file in "$STAGE_DIR/src"/*.xsm; do
     if [ -f "$file" ]; then
         mv "$file" "$STAGE_DIR/"

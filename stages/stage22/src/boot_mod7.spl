@@ -31,7 +31,17 @@ loadi(59,3);
 loadi(60,4);
 loadi(6,19);
 loadi(7,20);
-loadi(61,2);
+loadi(61,2); //disk free list
+loadi(18,31); //fork
+loadi(19,32);
+loadi(24,37); //int 11
+loadi(25,38);
+loadi(32,45); //int 15
+loadi(33,46);
+loadi(30,43); //int 14
+loadi(31,44);
+loadi(28,41); //int 13
+loadi(29,42);
 PTBR = PAGE_TABLE_BASE+20;
 //Library
 [PTBR+0] = 63;
@@ -89,7 +99,7 @@ R9=R9+1;
 endwhile;
 
 R9=0;
-while(R9<83) do
+while(R9<84) do
 [MEMORY_FREE_LIST+R9]=1;
 R9=R9+1;
 endwhile;
@@ -97,7 +107,7 @@ while(R9<MAX_MEM_PAGE) do
 [MEMORY_FREE_LIST+R9]=0;
 R9=R9+1;
 endwhile;
-[SYSTEM_STATUS_TABLE+2]=45;
+[SYSTEM_STATUS_TABLE+2]=44;
 [SYSTEM_STATUS_TABLE+3]=0;
 [TERMINAL_STATUS_TABLE]=0;
 [DISK_STATUS_TABLE]=0;
@@ -106,6 +116,13 @@ PerProcess=[PROCESS_TABLE+16+11]*512+496;
 R6=0;
 while(R6<8) do
 [PerProcess+2*R6]=-1;
+R6=R6+2;
+endwhile;
+
+R6=0;
+while(R6<MAX_SEM_COUNT) do
+[SEMAPHORE_TABLE+4*R6]=-1;
+[SEMAPHORE_TABLE+4*R6+1]=0;
 R6=R6+1;
 endwhile;
 return;
