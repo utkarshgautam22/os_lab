@@ -3,7 +3,6 @@ loadi(70,12);
 loadi(54,67);
 loadi(55,68);
 SP=82*512-1;
-breakpoint;
 call BOOT_MODULE;
 PTBR=PAGE_TABLE_BASE;  //as PID of idle process is 0
 
@@ -43,7 +42,6 @@ SP=8*512;
 [PROCESS_TABLE+1] = 0;
 [PROCESS_TABLE+4] = RUNNING;
 [SYSTEM_STATUS_TABLE + 1] = 0;
-breakpoint;
 ireturn;
 
 

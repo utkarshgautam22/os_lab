@@ -1,0 +1,15 @@
+int main()
+{
+decl
+    int a, b, c,t;
+enddecl
+begin
+    a=exposcall("Fork");
+    a=exposcall("Fork");
+    a=exposcall("Fork");
+    t=exposcall("Exec","asgn2_1.xsm",1,1);
+    write("done");
+    return 0;
+end
+}
+

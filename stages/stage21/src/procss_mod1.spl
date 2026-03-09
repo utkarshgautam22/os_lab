@@ -1,3 +1,19 @@
+if(R1==1) then
+R2=0;
+while([PROCESS_TABLE+R2*16+4]!=TERMINATED && R2<16) do
+R2=R2+1;
+endwhile;
+R0=-1;
+if(R2<16) then
+[PROCESS_TABLE+16*R2+4]= ALLOCATED;
+[PROCESS_TABLE+16*R2+1]=R2;
+[PROCESS_TABLE+16*R2+14]=PAGE_TABLE_BASE+20*R2;
+[PROCESS_TABLE+16*R2+15]=10;
+R0=R2;
+endif;
+return;
+endif;
+
 if(R1==2) then
 R3=[PROCESS_TABLE+16*R2+11];
 multipush(R1,R2,R3);
@@ -17,6 +33,19 @@ multipush(R1,R2,R3);
 R1=2;
 call MOD_1;
 multipop(R1,R2,R3);
+
+if([PROCESS_TABLE+R2*16+9]!=9) then
+R3=0;
+while(R3<16) do
+if([PROCESS_TABLE+16*R3+4]==WAIT_PROCESS && [PROCESS_TABLE+16*R3+5]==R2) then
+[PROCESS_TABLE+16*R3+4]=READY;
+endif;
+if([PROCESS_TABLE+16*R3+2]==R2) then
+[PROCESS_TABLE+16*R3+2]=-1;
+endif;
+R3=R3+1;
+endwhile;
+endif;
 [PROCESS_TABLE+16*R2+4]=TERMINATED;
 return;
 endif;
