@@ -24,8 +24,8 @@ if(functionNum==9) then
 [TERMINAL_STATUS_TABLE]=0;
 R3=0;
 while(R3<16) do
-if([PROCESS_TABLE+16*currentPID+4]==WAIT_TERMINAL) then
-[PROCESS_TABLE+16*currentPID+4]=READY;
+if([PROCESS_TABLE+16*R3+4]==WAIT_TERMINAL) then
+[PROCESS_TABLE+16*R3+4]=READY;
 endif;
 R3=R3+1;
 endwhile;

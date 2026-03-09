@@ -1,3 +1,4 @@
+ 
 [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=8;
 [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+13]=SP;
 SP=[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11]*512-1;
@@ -59,30 +60,31 @@ multipop(R1,R2,R3,R4);
 [PROCESS_TABLE+16*newpid+4]=CREATED;
 
 alias ChildPerProcess R4;
-ChildPerProcess=[PROCESS_TABLE+16*pid+11]*512+496;
+ChildPerProcess=[PROCESS_TABLE+16*newpid+11]*512+496;
 alias PrntPerProcess R5;
 PrntPerProcess=[PROCESS_TABLE+16*pid+11]*512+496;
 R6=0;
-while(R6<8) do
+while(R6<16) do
 [ChildPerProcess+R6]=[PrntPerProcess+R6];
 [ChildPerProcess+R6+1]=[PrntPerProcess+R6+1];
 R6=R6+2;
 endwhile;
 
+ 
 
-R6=2;
+R6=0;
 while(R6<10) do
-[DISK_MAP_TABLE+newpid*10+R2]=[DISK_MAP_TABLE+pid*10+R2];
-[DISK_MAP_TABLE+newpid*10+R2]=[DISK_MAP_TABLE+pid*10+R2];
+[DISK_MAP_TABLE+newpid*10+R6]=[DISK_MAP_TABLE+pid*10+R6];
 R6=R6+1;
 endwhile;
+ 
 
 R6=0;
 while(R6<16) do
 [PAGE_TABLE_BASE+20*newpid+R6]=[PAGE_TABLE_BASE+20*pid+R6];
 [PAGE_TABLE_BASE+20*newpid+R6+1]=[PAGE_TABLE_BASE+20*pid+R6+1];
 if([PAGE_TABLE_BASE+20*newpid+R6]!=-1) then
-[MEMORY_FREE_LIST+[PAGE_TABLE_BASE+20*newpid+R6]]=[MEMORY_FREE_LIST+[PAGE_TABLE_BASE+16*newpid+R6]]+1;
+[MEMORY_FREE_LIST+[PAGE_TABLE_BASE+20*newpid+R6]]=[MEMORY_FREE_LIST+[PAGE_TABLE_BASE+20*newpid+R6]]+1;
 endif;
 R6=R6+2;
 endwhile;
@@ -108,8 +110,10 @@ R4=R4+1;
 R5=R5+1;
 R6=R6+1;
 endwhile;
+
 [[PTBR+2*(userSP-1)/512]*512+(userSP-1)%512]=newpid;
 [[PAGE_TABLE_BASE+20*newpid+2*(userSP-1)/512]*512+(userSP-1)%512]=0;
+
 else
 [[PTBR+2*(userSP-1)/512]*512+(userSP-1)%512]=-1;
 endif;
