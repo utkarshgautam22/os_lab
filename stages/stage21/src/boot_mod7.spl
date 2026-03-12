@@ -112,6 +112,6 @@ PerProcess=[PROCESS_TABLE+16+11]*512+496;
 R6=0;
 while(R6<8) do
 [PerProcess+2*R6]=-1;
-R6=R6+2;
+R6=R6+1;
 endwhile;
 return;
