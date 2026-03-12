@@ -1,7 +1,7 @@
 #!/bin/bash
 SPL_DIR="/home/ug/Desktop/myexpos/spl"
 EXPL_DIR="/home/ug/Desktop/myexpos/expl"
-STAGE_DIR="/home/ug/Desktop/myexpos/stages/stage21"
+STAGE_DIR="/home/ug/Desktop/myexpos/stages/stage20"
 
 # Compile SPL files
 if [ -d "$SPL_DIR" ]; then
