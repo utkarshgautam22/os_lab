@@ -6,8 +6,10 @@ alias userSP R0;
 R0=SP;
 multipush(EIP);
 if(EC!=0 || userSP==PTLR*512-1) then
+print "got_ex";
 print EC;
 print EIP;
+breakpoint;
 R1=3;
 R2=[SYSTEM_STATUS_TABLE+1];
 call MOD_1;
