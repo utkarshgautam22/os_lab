@@ -1,0 +1,22 @@
+int main()
+{
+    decl
+        int temp;
+        int pid;
+        string FileName;
+    enddecl
+
+    begin
+        FileName="numbers.dat";
+        //read(FileName);
+        pid = exposcall("Open",FileName);
+        pid = exposcall("Read",pid,temp);
+        write(temp);
+        pid = exposcall("Read",pid,temp);
+        write(temp);
+        pid = exposcall("Read",pid,temp);
+        write(temp);
+        return 0;
+    end
+}
+

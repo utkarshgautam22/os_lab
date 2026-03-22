@@ -1,0 +1,77 @@
+alias userSP R0;
+R0=SP;
+alias syscall R1;
+syscall=[[PTBR+2*((userSP-5)/512)]*512+((userSP-5)%512)];
+[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+13]=SP;
+SP=[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11]*512;
+
+if(syscall==INT_OPEN) then // open syscall
+
+[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=R1;
+
+alias FileName R1;
+R1=[[PTBR+2*((userSP-4)/512)]*512+((userSP-4)%512)];
+
+alias PerProcess R2;
+PerProcess = [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11]*512+RESOURCE_TABLE_OFFSET;
+R3=0;
+while(R3<8) do
+    if([PerProcess+2*R3]==-1) then
+    break;
+    endif;
+    R3=R3+1;
+endwhile;
+
+if(R3>=8) then
+    [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-3;
+else
+    multipush(R0,R1,R2,R3);
+    R2=FileName;
+    R1=OPEN;
+    call MOD_3;
+    R4=R0;
+    multipop(R0,R1,R2,R3);
+    if(R4<0) then
+        [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=R4;
+    else
+        [PerProcess+2*R3]=FILE;
+        [PerProcess+2*R3+1]=R4;
+        [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=R3;
+    endif;
+endif;
+
+[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=0;
+SP=userSP;
+ireturn;
+
+endif;
+
+if(syscall==INT_CLOSE) then // delete syscall
+
+[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=syscall;
+
+alias Filedesc R1;
+R1=[[PTBR+2*((userSP-4)/512)]*512+((userSP-4)%512)];
+
+if(R1>7 || R1<0) then
+[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
+else
+alias PerProcessEntry R2;
+PerProcessEntry = [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11]*512+RESOURCE_TABLE_OFFSET+2*Filedesc;
+if([PerProcessEntry]!=FILE) then
+[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
+else
+multipush(R0,R1,R2);
+R1=CLOSE;
+R2=[PerProcessEntry+1];
+call MOD_3;
+multipop(R0,R1,R2);
+[PerProcessEntry]=-1;
+[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=0;
+endif;
+endif;
+[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=0;
+SP=userSP;
+ireturn;
+endif;
+
