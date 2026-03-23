@@ -1,0 +1,474 @@
+// ==========================================================
+// FIXED INTERRUPT HANDLERS
+// ==========================================================
+
+// Exception Handler
+// Disk 15–16 → Memory Pages 2–3
+// Address: 1024 – 2047
+
+loadi(2,15);
+loadi(3,16);
+
+
+// Timer Interrupt
+// Disk 17–18 → Pages 4–5
+// Address: 2048 – 3071
+
+loadi(4,17);
+loadi(5,18);
+
+
+// Disk Controller Interrupt
+// Disk 19–20 → Pages 6–7
+// Address: 3072 – 4095
+
+loadi(6,19);
+loadi(7,20);
+
+
+// Console Interrupt
+// Disk 21–22 → Pages 8–9
+// Address: 4096 – 5119
+
+loadi(8,21);
+loadi(9,22);
+
+
+// Interrupt 4 — Create/Delete
+// Disk 23–24 → Pages 10–11
+
+loadi(10,23);
+loadi(11,24);
+
+
+// Interrupt 5 — Seek/Open/Close
+
+loadi(12,25);
+loadi(13,26);
+
+
+// Interrupt 6 — Read
+
+loadi(14,27);
+loadi(15,28);
+
+
+// Interrupt 7 — Write
+
+loadi(16,29);
+loadi(17,30);
+
+
+// Interrupt 8 — Fork
+
+loadi(18,31);
+loadi(19,32);
+
+
+// Interrupt 9 — Exec
+
+loadi(20,33);
+loadi(21,34);
+
+
+// Interrupt 10 — Exit
+
+loadi(22,35);
+loadi(23,36);
+
+
+// Interrupt 11 — Wait/Signal
+
+loadi(24,37);
+loadi(25,38);
+
+
+// Interrupt 12 — Logout
+
+loadi(26,39);
+loadi(27,40);
+
+
+// Interrupt 13 — Semget/Semrelease
+
+loadi(28,41);
+loadi(29,42);
+
+
+// Interrupt 14 — Semlock/Semunlock
+
+loadi(30,43);
+loadi(31,44);
+
+
+// Interrupt 15 — Shutdown
+
+loadi(32,45);
+loadi(33,46);
+
+
+// Interrupt 16 — User Management
+
+loadi(34,47);
+loadi(35,48);
+
+
+// Interrupt 17 — Login
+
+loadi(36,49);
+loadi(37,50);
+
+
+// Interrupt 18 — Test
+
+loadi(38,51);
+loadi(39,52);
+
+
+
+// ==========================================================
+// KERNEL MODULES
+// ==========================================================
+
+
+// Module 0 — Resource Manager
+// Disk 53–54 → Pages 40–41
+
+loadi(40,53);
+loadi(41,54);
+
+
+// Module 1 — Process Manager
+
+loadi(42,55);
+loadi(43,56);
+
+
+// Module 2 — Memory Manager
+
+loadi(44,57);
+loadi(45,58);
+
+
+// Module 3 — File Manager
+
+loadi(46,59);
+loadi(47,60);
+
+
+// Module 4 — Device Manager
+
+loadi(48,61);
+loadi(49,62);
+
+
+// Module 5 — Scheduler
+
+loadi(50,63);
+loadi(51,64);
+
+
+// Module 6 — Pager
+
+loadi(52,65);
+loadi(53,66);
+
+
+// Module 7 — Boot Module
+
+loadi(54,67);
+loadi(55,68);
+
+
+// ==========================================================
+// PROCESS TABLE
+// Page 56
+// Address: 28672 – 28927
+// ==========================================================
+R9=0;
+while(R9<16) do
+    R10=PROCESS_TABLE+4+R9*16;
+    [R10]=TERMINATED;
+    R9=R9+1;
+endwhile;
+
+// ==========================================================
+// OPEN FILE TABLE
+// Address: 28928 – 29055
+// ==========================================================
+
+R0 = 0;
+
+while(R0 < MAX_OPENFILE_NUM) do //32
+
+    [OPEN_FILE_TABLE + R0*4] = -1; 
+    [OPEN_FILE_TABLE + R0*4+1] = 0;
+
+    R0 = R0 + 1;
+
+endwhile;
+
+
+
+// ==========================================================
+// SEMAPHORE TABLE
+// Address: 29056 – 29183
+// ==========================================================
+
+R0 = 0;
+
+while(R0 < MAX_SEM_COUNT) do
+
+    [SEMAPHORE_TABLE + 4*R0] = -1;
+    [SEMAPHORE_TABLE + 4*R0 + 1] = 0;
+
+    R0 = R0 + 1;
+
+endwhile;
+
+
+
+// ==========================================================
+// MEMORY FREE LIST
+// Page 57
+// Address: 29184 – 29311
+// ==========================================================
+
+R0 = 0;
+
+while(R0 < 84) do
+
+    [MEMORY_FREE_LIST + R0] = 1;
+
+    R0 = R0 + 1;
+
+endwhile;
+
+
+while(R0 < MAX_MEM_PAGE) do
+
+    [MEMORY_FREE_LIST + R0] = 0;
+
+    R0 = R0 + 1;
+
+endwhile;
+
+
+
+// ==========================================================
+// FILE STATUS TABLE
+// Address: 29312 – 29551
+// ==========================================================
+
+R0 = 0;
+
+while(R0 < 60) do
+
+    [FILE_STATUS_TABLE + 4*R0] = -1;
+    [FILE_STATUS_TABLE + 4*R0+1] = -1;
+
+    R0 = R0 + 1;
+
+endwhile;
+
+
+
+// ==========================================================
+// DISK STATUS TABLE
+// Address: 29552 – 29559
+// ==========================================================
+
+// ==========================================================
+// SYSTEM STATUS TABLE
+// Address: 29560 – 29567
+// ==========================================================
+
+[SYSTEM_STATUS_TABLE + 2] = 44;
+[SYSTEM_STATUS_TABLE + 3] = 0;
+
+
+
+// ==========================================================
+// TERMINAL STATUS TABLE
+// Address: 29568 – 29575
+// ==========================================================
+
+// ==========================================================
+// ACCESS LOCK TABLE
+// Address: 29576 – 29583
+// ==========================================================
+
+// ==========================================================
+// PAGE TABLE
+// Page 58
+// Address: 29696 – 30015
+// ==========================================================
+
+// ==========================================================
+// BUFFER TABLE
+// Page 58
+// Address: 30016 – 30031
+// ==========================================================
+
+
+// ==========================================================
+// DISK MAP TABLE
+// Page 58
+// Address: 30032 – 30191
+// ==========================================================
+
+
+// ==========================================================
+// SYSTEM DATA STRUCTURES (LOADED FROM DISK)
+// ==========================================================
+
+// Inode Table
+// Pages 59–60
+// Address: 30208 – 31167
+
+// User Table
+// Pages 59–60
+// Address: 31168 - 31199
+
+loadi(59,3);
+loadi(60,4);
+
+// Disk Free List
+// Page 61
+// Address: 31232 – 31743
+
+loadi(61,2);
+
+
+// Root File
+// Page 62
+// Address: 31744 – 32223
+
+loadi(62,5);
+
+// ==========================================================
+// Expos Library
+// ==========================================================
+loadi(63,13);
+loadi(64,14);
+
+// ==========================================================
+// USER SPACE PROGRAMS
+// ==========================================================
+
+
+// INIT / LOGIN
+// Pages 65–66
+// Address: 33280 – 34303
+
+loadi(65,7);
+loadi(66,8);
+
+
+// SHELL
+// Pages 67–68
+// Address: 34304 – 35327
+
+loadi(67,9);
+loadi(68,10);
+
+
+// IDLE
+// Pages 69–70
+// Address: 35328 – 36351
+
+loadi(69,11);
+loadi(70,12);
+
+// Buffer Cache
+// Pages 71–74
+// Address: 36352 – 38399
+
+R0 = 0;
+
+
+while(R0 < 4) do
+
+    [BUFFER_TABLE + 4*R0] = -1;
+    [BUFFER_TABLE + 4*R0+1] = 0;
+    [BUFFER_TABLE + 4*R0+2] = -1;
+
+    R0 = R0 + 1;
+
+endwhile;
+
+
+// ==========================================================
+// NON-FIXED MEMORY REGIONS
+// ==========================================================
+
+
+// Reserved Page -- Exam used
+// Page 75
+// Address: 38400 – 38911
+
+
+// User Program Area
+// Pages 76–127
+// Address: 38912 – 65535
+
+
+// ==========================================================
+// INIT PROGRAM SETUP
+// ==========================================================
+PTBR = PAGE_TABLE_BASE+20;
+[PTBR+0] = 63;
+[PTBR+1] = "0100";
+[PTBR+2] = 64;
+[PTBR+3] = "0100";
+[PTBR+4] = 78;
+[PTBR+5] = "0110";
+[PTBR+6] = 79;
+[PTBR+7] = "0110";
+[PTBR+8] = 65;
+[PTBR+9] = "0100";
+[PTBR+10] = 66;
+[PTBR+11] = "0100";
+[PTBR+12] = -1;
+[PTBR+13] = "0000";
+[PTBR+14] = -1;
+[PTBR+15] = "0000";
+[PTBR+16] = 76;
+[PTBR+17] = "0110";
+[PTBR+18] = 77;
+[PTBR+19] = "0110";
+PTLR=10;
+[76*512] = [65*512+1];
+
+[PROCESS_TABLE+15+16] = 10;
+[PROCESS_TABLE+14+16] = PTBR;
+[PROCESS_TABLE+13+16]=8*512;
+[PROCESS_TABLE+16+12]=0;
+[PROCESS_TABLE+11+16] = 80;
+[PROCESS_TABLE+1+16] = 1;
+[PROCESS_TABLE+3+16] = 1;
+[PROCESS_TABLE+4+16] = CREATED;
+
+[DISK_MAP_TABLE+1*10]=-1;
+[DISK_MAP_TABLE+1*10+1]=-1;
+[DISK_MAP_TABLE+1*10+2]=-1;
+[DISK_MAP_TABLE+1*10+3]=-1;
+[DISK_MAP_TABLE+1*10+4]=7;
+[DISK_MAP_TABLE+1*10+5]=8;
+[DISK_MAP_TABLE+1*10+6]=-1;
+[DISK_MAP_TABLE+1*10+7]=-1;
+[DISK_MAP_TABLE+1*10+8]=-1;
+[DISK_MAP_TABLE+1*10+9]=-1;
+
+alias PerProcess R5;
+PerProcess=[PROCESS_TABLE+16+11]*512+496;
+R6=0;
+while(R6<8) do
+[PerProcess+2*R6]=-1;
+R6=R6+2;
+endwhile;
+
+[TERMINAL_STATUS_TABLE]=0;
+[DISK_STATUS_TABLE]=0;
+
+return;

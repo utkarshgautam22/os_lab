@@ -1,18 +1,32 @@
-load --os /home/ug/Desktop/myexpos/stages/stage19/os_startup.xsm
-load --idle /home/ug/Desktop/myexpos/stages/stage19/idle.xsm
-load --init /home/ug/Desktop/myexpos/stages/stage19/init.xsm
-load --module 0 /home/ug/Desktop/myexpos/stages/stage19/res_mod0.xsm
-load --module 1 /home/ug/Desktop/myexpos/stages/stage19/procss_mod1.xsm
-load --module 2 /home/ug/Desktop/myexpos/stages/stage19/mem_mod2.xsm
-load --module 4 /home/ug/Desktop/myexpos/stages/stage19/dev_mod4.xsm
-load --module 5 /home/ug/Desktop/myexpos/stages/stage19/scheduler_mod5.xsm
-load --module 7 /home/ug/Desktop/myexpos/stages/stage19/boot_mod7.xsm
-load --exhandler /home/ug/Desktop/myexpos/stages/stage19/exhandler.xsm
+load --os /home/ug/Desktop/myexpos/stages/stage25/os_startup.xsm
+load --idle /home/ug/Desktop/myexpos/stages/stage25/idle.xsm
+load --init /home/ug/Desktop/myexpos/stages/stage25/init.xsm
+load --module 0 /home/ug/Desktop/myexpos/stages/stage25/res_mod0.xsm
+load --module 1 /home/ug/Desktop/myexpos/stages/stage25/procss_mod1.xsm
+load --module 2 /home/ug/Desktop/myexpos/stages/stage25/mem_mod2.xsm
+load --module 3 /home/ug/Desktop/myexpos/stages/stage25/file_mod3.xsm
+load --module 4 /home/ug/Desktop/myexpos/stages/stage25/dev_mod4.xsm
+load --module 5 /home/ug/Desktop/myexpos/stages/stage25/scheduler_mod5.xsm
+load --module 7 /home/ug/Desktop/myexpos/stages/stage25/boot_mod7.xsm
+load --exhandler /home/ug/Desktop/myexpos/stages/stage25/exhandler.xsm
 load --library /home/ug/Desktop/myexpos/expl/library.lib
-load --int=timer /home/ug/Desktop/myexpos/stages/stage19/timer.xsm
-load --int=disk /home/ug/Desktop/myexpos/stages/stage19/disk.xsm
-load --int=console /home/ug/Desktop/myexpos/stages/stage19/console.xsm
-load --int=6 /home/ug/Desktop/myexpos/stages/stage19/read_int6.xsm
-load --int=7 /home/ug/Desktop/myexpos/stages/stage19/write_int7.xsm
-load --int=9 /home/ug/Desktop/myexpos/stages/stage19/exec_int9.xsm
-load --int=10 /home/ug/Desktop/myexpos/stages/stage19/exit_int10.xsm
+load --int=timer /home/ug/Desktop/myexpos/stages/stage25/timer.xsm
+load --int=disk /home/ug/Desktop/myexpos/stages/stage25/disk.xsm
+load --int=console /home/ug/Desktop/myexpos/stages/stage25/console.xsm
+load --int=4 /home/ug/Desktop/myexpos/stages/stage25/int4.xsm
+load --int=5 /home/ug/Desktop/myexpos/stages/stage25/int5.xsm
+load --int=6 /home/ug/Desktop/myexpos/stages/stage25/read_int6.xsm
+load --int=7 /home/ug/Desktop/myexpos/stages/stage25/write_int7.xsm
+load --int=8 /home/ug/Desktop/myexpos/stages/stage25/fork_int8.xsm
+load --int=9 /home/ug/Desktop/myexpos/stages/stage25/exec_int9.xsm
+load --int=10 /home/ug/Desktop/myexpos/stages/stage25/exit_int10.xsm
+load --int=11 /home/ug/Desktop/myexpos/stages/stage25/int11.xsm
+load --int=13 /home/ug/Desktop/myexpos/stages/stage25/int13.xsm
+load --int=14 /home/ug/Desktop/myexpos/stages/stage25/int14.xsm
+load --int=15 /home/ug/Desktop/myexpos/stages/stage25/shutdown_int15.xsm
+rm asgn1.xsm
+rm asgn2.xsm
+rm asgn3.xsm
+load --exec /home/ug/Desktop/myexpos/stages/stage25/asgn1.xsm
+load --exec /home/ug/Desktop/myexpos/stages/stage25/asgn2.xsm
+load --exec /home/ug/Desktop/myexpos/stages/stage25/asgn3.xsm
