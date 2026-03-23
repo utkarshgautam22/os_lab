@@ -1,0 +1,87 @@
+[PROCESS_TABLE+16*([SYSTEM_STATUS_TABLE+1])+9]=7;
+[PROCESS_TABLE+16*([SYSTEM_STATUS_TABLE+1])+13]=SP;
+alias userSP R1;
+userSP=SP;
+SP=[PROCESS_TABLE+16*([SYSTEM_STATUS_TABLE+1])+11]*512-1;
+
+alias fileDiscriptor R2;
+fileDiscriptor=[[PTBR+2*(userSP-4)/512]*512+(userSP-4)%512];
+alias word R3;
+word=[[PTBR+2*(userSP-3)/512]*512+(userSP-3)%512];
+
+if(fileDiscriptor==-1) then
+
+    multipush(R0,R1,R2,R3);
+    R1=4;
+    R2=[SYSTEM_STATUS_TABLE+1];
+    R3=word;
+    call MOD_4;
+    multipop(R0,R1,R2,R3);
+    [[PTBR+2*(userSP-1)/512]*512+(userSP-1)%512]=0;
+endif;
+
+if(fileDiscriptor>7 || fileDiscriptor < 0) then
+[[PTBR+2*(userSP-1)/512]*512+(userSP-1)%512]=-1;
+else
+alias PerProcessEntry R4;
+PerProcessEntry = [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11]*512+RESOURCE_TABLE_OFFSET+2*fileDiscriptor;
+
+if([PerProcessEntry]!=FILE) then
+[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
+else
+    alias FileTableEntry R5;
+    FileTableEntry = OPEN_FILE_TABLE+4*[PerProcessEntry+1];
+    alias InodeIdx R4;
+    InodeIdx = [FileTableEntry];
+    multipush(R1,R2,R3,R4,R5);
+    R1=ACQUIRE_INODE;
+    R2=InodeIdx;
+    R3=[SYSTEM_STATUS_TABLE+1];
+    call MOD_0;
+    multipop(R1,R2,R3,R4,R5);
+    if(InodeIdx==INODE_ROOT) then
+        if([FileTableEntry+2]==480) then
+            multipush(R1,R2,R3,R4,R5);
+            R1=RELEASE_INODE;
+            R2=InodeIdx;
+            R3=[SYSTEM_STATUS_TABLE+1];
+            call MOD_0;
+            multipop(R1,R2,R3,R4,R5);
+            [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-2;
+        else
+            word=[ROOT_FILE+[FileTableEntry+2]];
+            [FileTableEntry+2]=[FileTableEntry+2]+1;
+            [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=0;
+        endif;
+    else
+        if([FileTableEntry+2]==[INODE_TABLE+16*InodeIdx+2]) then
+            multipush(R1,R2,R3,R4,R5);
+            R1=RELEASE_INODE;
+            R2=InodeIdx;
+            R3=[SYSTEM_STATUS_TABLE+1];
+            call MOD_0;
+            multipop(R1,R2,R3,R4,R5);
+            [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-2;
+        else
+            multipush(R1,R2,R3,R4,R5);
+            R2=[INODE_TABLE+16*InodeIdx+8+[FileTableEntry+2]/512];
+            R4=word;
+            R1=BUFFERED_READ;
+            R3=[FileTableEntry+2]%512;
+            call MOD_3;
+            multipop(R1,R2,R3,R4,R5);
+            [FileTableEntry+2]=[FileTableEntry+2]+1;
+            [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=0;
+        endif;
+    endif;
+    multipush(R1,R2,R3,R4,R5);
+    R1=RELEASE_INODE;
+    R2=InodeIdx;
+    R3=[SYSTEM_STATUS_TABLE+1];
+    call MOD_0;
+    multipop(R1,R2,R3,R4,R5);
+endif;
+endif;
+[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=0;
+SP=userSP;
+ireturn;
