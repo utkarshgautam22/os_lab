@@ -1,0 +1,23 @@
+int main(){
+    decl
+        string username;
+        string password;
+        int retval;
+    enddecl
+
+    begin
+        while(1==1) do
+            read(username);
+            read(password);
+            retval=exposcall("Login",username,password);
+            if(retval==-1) then
+                write("invalid");
+            else 
+                if(retval==-2) then
+                    write("permission");
+                endif;
+            endif;
+        endwhile;
+        return 0;
+    end
+}

@@ -1,0 +1,151 @@
+alias userSP R1;
+userSP=SP;
+alias syscall R2;
+syscall=[[PTBR+2*((userSP-5)/512)]*512+((userSP-5)%512)];
+
+
+alias process R3;
+process=PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1];
+[process+13]=SP;
+SP=[process+11]*512;
+
+if(syscall==INT_OPEN) then // open syscall
+
+[process+9]=R2;
+
+alias FileName R4;
+FileName=[[PTBR+2*((userSP-4)/512)]*512+((userSP-4)%512)];
+
+alias PerProcess R5;
+PerProcess = [process+11]*512+RESOURCE_TABLE_OFFSET;
+R6=0;
+while(R6<8) do
+    if([PerProcess+2*R6]==-1) then
+    break;
+    endif;
+    R6=R6+1;
+endwhile;
+
+if(R6>=8) then
+    [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-3;
+else
+    multipush(R1,R3,R5,R6);
+    R2=FileName;
+    R1=OPEN;
+    call MOD_3;
+    multipop(R1,R3,R5,R6);
+    if(R0<0) then
+        [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=R0;
+    else
+        R7=PerProcess+2*R6;
+        [R7]=FILE;
+        [R7+1]=R0;
+        [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=R6;
+    endif;
+endif;
+
+[process+9]=0;
+SP=userSP;
+ireturn;
+
+endif;
+
+if(syscall==INT_CLOSE) then // delete syscall
+
+[process+9]=syscall;
+
+alias Filedesc R2;
+Filedesc=[[PTBR+2*((userSP-4)/512)]*512+((userSP-4)%512)];
+
+if(R2>7 || R2<0) then
+    [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
+else
+    alias PerProcessEntry R4;
+    PerProcessEntry = [process+11]*512+RESOURCE_TABLE_OFFSET+2*Filedesc;
+    if([PerProcessEntry]!=FILE) then
+        [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
+    else
+        multipush(R1,R3,R4);
+        R1=CLOSE;
+        R2=[PerProcessEntry+1];
+        call MOD_3;
+        multipop(R1,R3,R4);
+        [PerProcessEntry]=-1;
+        [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=0;
+    endif;
+endif;
+[process+9]=0;
+SP=userSP;
+ireturn;
+endif;
+
+if(syscall==INT_SEEK) then
+
+    alias Filedesc R4;
+    Filedesc=[[PTBR+2*((userSP-4)/512)]*512+((userSP-4)%512)];
+    alias offset R2;
+    offset=[[PTBR+2*((userSP-3)/512)]*512+((userSP-3)%512)];
+
+    if(Filedesc>7 || Filedesc<0) then
+        [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
+    else
+        alias PerProcessEntry R5;
+        PerProcessEntry = [process+11]*512+RESOURCE_TABLE_OFFSET+2*Filedesc;
+        if([PerProcessEntry]!=FILE) then
+            [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
+        else
+            alias FileTableEntry R4;
+            FileTableEntry = OPEN_FILE_TABLE+4*[PerProcessEntry+1];
+            alias inodeR3 R6;
+            inodeR3 = INODE_TABLE+16*[FileTableEntry];
+            multipush(R1,R2,R3,R4,R5,R6);
+            R1=ACQUIRE_INODE;
+            R2=[FileTableEntry];
+            R3=[SYSTEM_STATUS_TABLE+1];
+            call MOD_0;
+            multipop(R1,R2,R3,R4,R5,R6);
+            if(R0!=0) then
+				[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
+			else
+                R7=[FileTableEntry+2]+offset;
+                if(R7<0) then
+                    multipush(R1);
+                    R1=RELEASE_INODE;
+                    R2=[FileTableEntry];
+                    R3=[SYSTEM_STATUS_TABLE+1];
+                    call MOD_0;
+                    multipop(R1);
+                    [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-2;
+                    [process+9]=0;
+                    SP=userSP;
+                    ireturn;
+                endif;
+                if(offset==0) then
+                    [FileTableEntry+2]=0;
+                else
+                    if([FileTableEntry]==INODE_ROOT) then
+                        R6=480;
+                    else
+                        R6=[inodeR3+2];
+                    endif;
+                    R7=[FileTableEntry+2]+offset;
+                    if(R7>R6) then
+                        [FileTableEntry+2]=R6;
+                    else
+                        [FileTableEntry+2]=R7;
+                    endif;
+                endif;
+                multipush(R1);
+                R1=RELEASE_INODE;
+                R2=[FileTableEntry];
+                R3=[SYSTEM_STATUS_TABLE+1];
+                call MOD_0;
+                multipop(R1);
+                [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=0;
+            endif;
+        endif;
+    endif;
+    [process+9]=0;
+    SP=userSP;
+    ireturn;
+endif;

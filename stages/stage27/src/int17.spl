@@ -1,0 +1,57 @@
+alias userSP R1;
+userSP=SP;
+
+alias ProcessTable R2;
+ProcessTable = PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1];
+
+alias syscall R3;
+syscall=[[PTBR+2*((userSP-5)/512)]*512+((userSP-5)%512)];
+
+alias username R4;
+username = [[PTBR+2*((userSP-4)/512)]*512+((userSP-4)%512)];
+
+alias password R5;
+password = [[PTBR+2*((userSP-3)/512)]*512+((userSP-3)%512)];
+
+[ProcessTable+13] = userSP;
+SP=[ProcessTable+11]*512;
+
+alias pid R6;
+pid=[SYSTEM_STATUS_TABLE+1];
+if(syscall==INT_LOGIN) then //27
+    [ProcessTable+9]=INT_LOGIN;
+    if(pid!=1) then
+        [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
+    else
+        R7=0;
+        while(R7<MAX_USER_NUM) do 
+            R8=USER_TABLE+2*R7;
+            if([R8]==username) then
+                break;
+            endif;
+            R7=R7+1;
+        endwhile;
+
+        if(R7>=MAX_USER_NUM) then
+            [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
+        else
+            encrypt password;
+            if(password!=[R8+1]) then
+                [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
+            else
+                R8=PROCESS_TABLE+2*16;
+                [R8+4]=CREATED;
+                [R8+1]=R7;
+                [ProcessTable+4]=WAIT_PROCESS;
+                [ProcessTable+5]=2;
+                [SYSTEM_STATUS_TABLE]=R7;
+                multipush(R1,R2);
+                call MOD_5;
+                multipop(R1,R2);
+            endif;
+        endif;
+    endif;
+    [ProcessTable+9]=0;
+    SP=userSP;
+    ireturn;
+endif;
