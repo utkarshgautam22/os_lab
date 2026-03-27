@@ -141,8 +141,8 @@ if(R1==KILL_ALL) then
     while(R1<MAX_PROC_NUM) do
         if(R1!=R2 && [PROCESS_TABLE+R1*16+4]!=TERMINATED) then
             multipush(R1,R2);
+            R2=R1;
             R1=EXIT_PROCESS;
-            R2=R2;
             call MOD_1;
             multipop(R1,R2);
         endif;

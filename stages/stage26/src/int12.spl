@@ -1,0 +1,43 @@
+alias userSP R1;
+userSP=SP;
+
+alias ProcessTable R2;
+ProcessTable = PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1];
+
+alias syscall R3;
+syscall=[[PTBR+2*((userSP-5)/512)]*512+((userSP-5)%512)];
+
+[ProcessTable+13] = userSP;
+SP=[ProcessTable+11]*512;
+
+alias pid R6;
+pid=[SYSTEM_STATUS_TABLE+1];
+
+if(syscall==INT_LOGOUT) then //28
+    [ProcessTable+9]=INT_LOGOUT;
+    if([SYSTEM_STATUS_TABLE+1]==2) then
+        multipush(R1,R2);
+        R1=KILL_ALL;
+        R2=[SYSTEM_STATUS_TABLE+1];
+        call MOD_1;
+        multipop(R1,R2);
+        [PROCESS_TABLE+2*16+4]=TERMINATED;
+        R4=[PTBR+2*4];
+        R5=[PTBR+2*8];
+        [R5*512] = [R4*512+1];
+        
+        [PROCESS_TABLE+2*16+13] = 4096;
+        [PROCESS_TABLE+1*16+4]=READY;
+        [SYSTEM_STATUS_TABLE]=0;
+        breakpoint;
+        multipush(R1,R2);
+        call MOD_5;
+        multipop(R1,R2);
+
+    else
+        [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
+    endif;
+    [ProcessTable+9]=0;
+    SP=userSP;
+    ireturn;
+endif;
