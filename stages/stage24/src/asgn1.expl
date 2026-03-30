@@ -7,8 +7,8 @@ int main()
     enddecl
 
     begin
-        FileName="numbers.dat";
-        //read(FileName);
+        //FileName="numbers.dat";
+        read(FileName);
         pid = exposcall("Open",FileName);
         pid = exposcall("Read",pid,temp);
         write(temp);

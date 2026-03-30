@@ -22,7 +22,7 @@ load --int=11 /home/ug/Desktop/myexpos/stages/stage23/int11.xsm
 load --int=13 /home/ug/Desktop/myexpos/stages/stage23/int13.xsm
 load --int=14 /home/ug/Desktop/myexpos/stages/stage23/int14.xsm
 load --int=15 /home/ug/Desktop/myexpos/stages/stage23/shutdown_int15.xsm
-rm asgn1_c.xsm
-rm asgn1_d.xsm
-load --exec /home/ug/Desktop/myexpos/stages/stage23/asgn1_d.xsm
-load --exec /home/ug/Desktop/myexpos/stages/stage23/asgn1_c.xsm
+rm asgn1.xsm
+rm asgn2.xsm
+load --exec /home/ug/Desktop/myexpos/stages/stage23/asgn1.xsm
+load --exec /home/ug/Desktop/myexpos/stages/stage23/asgn2.xsm

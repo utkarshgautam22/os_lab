@@ -6,7 +6,9 @@ int main()
     enddecl
 
     begin
-        temp = exposcall("Delete","ug.dat");
+        temp = exposcall("Read",-1, FileName);
+        temp = exposcall("Delete",FileName);
+        write(temp);
         return 0;
     end
 }

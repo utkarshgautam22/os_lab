@@ -1,12 +1,13 @@
 int main()
 {
     decl
-        int temp,pid;
+        int temp,perm;
         string FileName;
     enddecl
 
     begin
         temp = exposcall("Read",-1, FileName);
+        temp = exposcall("Read",-1, perm);
         temp = exposcall("Create",FileName,1);
         return 0;
     end
