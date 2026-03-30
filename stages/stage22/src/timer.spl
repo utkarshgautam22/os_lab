@@ -16,7 +16,9 @@ endif;
 
 while(R2<16) do
 R3=PROCESS_TABLE + R2 * 16;
-[R3]=[R3]+1;
+if([R3+4]!=TERMINATED) then
+    [R3]=[R3]+1;
+endif;
 R2=R2+1;
 endwhile;
 call SCHEDULER;
