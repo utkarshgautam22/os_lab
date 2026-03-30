@@ -236,7 +236,7 @@ endwhile;
 
 R0 = 0;
 
-while(R0 < 81) do
+while(R0 < 83) do
 
     [MEMORY_FREE_LIST + R0] = 1;
 
@@ -412,26 +412,20 @@ endwhile;
 // INIT PROGRAM SETUP
 // ==========================================================
 PTBR = PAGE_TABLE_BASE+20;
+R1=0;
+while(R1<20) do
+    [PTBR+2*R1]=-1;
+    [PTBR+2*R1+1]="0000";
+    R1=R1+1;
+endwhile;
 [PTBR+0] = 63;
 [PTBR+1] = "0100";
 [PTBR+2] = 64;
 [PTBR+3] = "0100";
-[PTBR+4] = -1;
-[PTBR+5] = "0000";
-[PTBR+6] = -1;
-[PTBR+7] = "0000";
 [PTBR+8] = 65;
 [PTBR+9] = "0100";
-[PTBR+10] = -1;
-[PTBR+11] = "0000";
-[PTBR+12] = -1;
-[PTBR+13] = "0000";
-[PTBR+14] = -1;
-[PTBR+15] = "0000";
 [PTBR+16] = 66;
 [PTBR+17] = "0110";
-[PTBR+18] = -1;
-[PTBR+19] = "0000";
 PTLR=10;
 [66*512] = [65*512+1];
 
@@ -454,18 +448,10 @@ PTBR = PAGE_TABLE_BASE+40;
 [PTBR+1] = "0100";
 [PTBR+2] = 64;
 [PTBR+3] = "0100";
-[PTBR+4] = -1;
-[PTBR+5] = "0000";
-[PTBR+6] = -1;
-[PTBR+7] = "0000";
 [PTBR+8] = 67;
 [PTBR+9] = "0100";
 [PTBR+10] = 68;
 [PTBR+11] = "0100";
-[PTBR+12] = -1;
-[PTBR+13] = "0000";
-[PTBR+14] = -1;
-[PTBR+15] = "0000";
 [PTBR+16] = 78;
 [PTBR+17] = "0110";
 [PTBR+18] = 79;
@@ -481,7 +467,7 @@ ProcessTable = PROCESS_TABLE+2*16;
 [ProcessTable+12]=0;
 [ProcessTable+11] = 80;
 [ProcessTable+1] = 2;
-[ProcessTable+2] = 1;
+[ProcessTable+3] = 1;
 [ProcessTable+4] = TERMINATED;
 
 alias diskmap R2;
@@ -507,7 +493,23 @@ endwhile;
 
 [TERMINAL_STATUS_TABLE]=0;
 [DISK_STATUS_TABLE]=0;
-[SYSTEM_STATUS_TABLE + 2] = 47;
+[SYSTEM_STATUS_TABLE]=0;
+[SYSTEM_STATUS_TABLE+1]=0;
+[SYSTEM_STATUS_TABLE + 2] = 45;
 [SYSTEM_STATUS_TABLE + 3] = 0;
+[SYSTEM_STATUS_TABLE+4] = 0;
+[SYSTEM_STATUS_TABLE+5]=-1;
+
+// Tick inicialise to 0
+R2=0;
+while (R2 < 16) do
+
+    R3 = PROCESS_TABLE + R2 * 16;
+
+    [R3] = 0;
+
+    R2 = R2 + 1;
+
+endwhile;
 
 return;

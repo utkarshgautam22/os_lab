@@ -1,0 +1,13 @@
+int main(){
+
+decl
+int val;
+enddecl
+
+begin
+val = exposcall("Getpid");
+write(val);
+return 0;
+end
+}
+

@@ -1,19 +1,111 @@
 [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
 SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
 backup;
-alias currentPID R0;
-currentPID = [SYSTEM_STATUS_TABLE+1];
-alias process_table_entry R1;
-process_table_entry = PROCESS_TABLE + currentPID * 16;
-[process_table_entry + 4] = READY;
-R2=0;
-while(R2<16) do
-R3=PROCESS_TABLE + R2 * 16;
-[R3]=[R3]+1;
-R2=R2+1;
+
+alias ProcessTable R2;
+ProcessTable = PROCESS_TABLE + 16 * [SYSTEM_STATUS_TABLE + 1];
+
+alias pid R3;
+pid = [SYSTEM_STATUS_TABLE + 1];
+
+// If paging is already active (swap in/out in progress)
+if ([SYSTEM_STATUS_TABLE + 5] != -1) then
+
+    // Only the Swapper Daemon (pid 15) performs swapping
+    if (pid == 15) then
+
+        // Paging status indicates Swap Out operation
+        if ([SYSTEM_STATUS_TABLE + 5] == 0) then   // swap_out
+
+            multipush(R1, R2, R3);
+
+            // Move a process from memory to disk
+            R1 = SWAP_OUT;
+            R2 = pid;
+            call MOD_6;
+
+            multipop(R1, R2, R3);
+
+        else
+
+            multipush(R1, R2, R3);
+
+            // Bring a swapped process back into memory
+            R1 = SWAP_IN;
+            R2 = pid;
+            call MOD_6;
+
+            multipop(R1, R2, R3);
+
+        endif;
+
+    endif;
+
+else
+
+    // Paging is not active — decide whether to start swapping
+
+    // Case 1: Memory critically low → initiate Swap Out
+    if ([SYSTEM_STATUS_TABLE + 2] < MEM_LOW) then  
+
+        [SYSTEM_STATUS_TABLE + 5] = 0;
+
+    else
+
+        // Case 2: Check if there are swapped out processes
+        if ([SYSTEM_STATUS_TABLE + 4] > 0) then
+
+            R4 = 3;
+
+            // Scan processes to find any swapped process waiting too long
+            while (R4 < 15) do
+
+                R5 = PROCESS_TABLE + 16 * R4;
+
+                if ([R5] > MAX_TICK && [R5 + 6] == 1) then
+                    break;
+                endif;
+
+                R4 = R4 + 1;
+
+            endwhile;
+
+            // Start Swap In if memory sufficient
+            // OR some swapped process waited too long
+            if ([SYSTEM_STATUS_TABLE + 2] > MEM_HIGH || R4 < 15) then
+
+                [SYSTEM_STATUS_TABLE + 5] = 1;
+
+            endif;
+
+        endif;
+
+    endif;
+
+endif;
+
+// Current process finished its time slice → move back to READY state
+[ProcessTable + 4] = READY;
+
+R4 = 0;
+
+// Increment tick for all processes
+while (R4 < 16) do
+
+    R5 = PROCESS_TABLE + R4 * 16;
+
+    [R5] = [R5] + 1;
+
+    R4 = R4 + 1;
+
 endwhile;
+
+// Switch CPU to next scheduled process
 call SCHEDULER;
+
 restore;
+
 SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
-[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 9]=0;
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
+
 ireturn;

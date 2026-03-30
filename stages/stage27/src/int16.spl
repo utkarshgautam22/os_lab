@@ -1,168 +1,342 @@
 alias userSP R1;
-userSP=SP;
+userSP = SP;
 
 alias ProcessTable R2;
-ProcessTable = PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1];
+ProcessTable = PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE+1];
 
 alias syscall R3;
-syscall=[[PTBR+2*((userSP-5)/512)]*512+((userSP-5)%512)];
-
+syscall = [[PTBR + 2*((userSP-5)/512)]*512 + ((userSP-5)%512)];
 
 alias UserId R4;
 alias username R4;
-username = [[PTBR+2*((userSP-4)/512)]*512+((userSP-4)%512)];
-
+username = [[PTBR + 2*((userSP-4)/512)]*512 + ((userSP-4)%512)];
 
 alias password R5;
-password = [[PTBR+2*((userSP-3)/512)]*512+((userSP-3)%512)];
+password = [[PTBR + 2*((userSP-3)/512)]*512 + ((userSP-3)%512)];
 
+// Save user SP
 [ProcessTable+13] = userSP;
-//SP=[ProcessTable+11]*512;
 
 alias pid R6;
-pid=[SYSTEM_STATUS_TABLE+1];
+pid = [SYSTEM_STATUS_TABLE+1];
 
 alias retadd R10;
-retadd = retadd;
+// Address where return value should be written
+retadd = [PTBR + 2*((userSP-1)/512)]*512 + ((userSP-1)%512);
 
-if(syscall==INT_NEWUSR) then//22
-    [ProcessTable+9]=INT_NEWUSR;
-    if([SYSTEM_STATUS_TABLE]!=1 || pid!=2) then
-        retadd=-1;
+
+
+// =========================
+// NEWUSR (22)
+// =========================
+
+if (syscall == INT_NEWUSR) then
+
+    // Set MODE_FLAG
+    [ProcessTable+9] = INT_NEWUSR;
+
+    // Permission check: only root shell
+    if ([SYSTEM_STATUS_TABLE] != 1 || pid != 2) then
+
+        [retadd] = -2;
+
     else
-        R3=0;
-        R8=-1;
-        while(R3<MAX_USER_NUM) do
-            R7=USER_TABLE+2*R3;
-            if([R7]==username) then
-                R3=-1;
+
+        R3 = 0;
+        R8 = -1;
+
+        // Search for existing user and free slot
+        while (R3 < MAX_USER_NUM) do
+
+            R7 = USER_TABLE + 2*R3;
+
+            if ([R7] == username) then
+
+                R3 = -1;
                 break;
+
             else
-                if([R7]==-1 && R8==-1) then
-                    R8=R3;
+
+                if ([R7] == -1 && R8 == -1) then
+                    R8 = R3;
                 endif;
+
             endif;
-            R3=R3+1;
+
+            R3 = R3 + 1;
+
         endwhile;
 
-        if(R3!=-1) then
-            if(R8<MAX_USER_NUM) then
+
+        if (R3 != -1) then
+
+            if (R8 < MAX_USER_NUM) then
+
+                // Encrypt password
                 encrypt password;
-                R7=USER_TABLE+2*R8;
-                [R7]=username;
-                [R7+1]=password;
+
+                // Insert new user
+                R7 = USER_TABLE + 2*R8;
+                [R7] = username;
+                [R7+1] = password;
+
+                [retadd] = 0;
+
             else
-                [retadd]=-3;
+
+                [retadd] = -3;
+
             endif;
+
         else
-            [retadd]=-1;
+
+            [retadd] = -1;
+
         endif;
+
     endif;
-    [ProcessTable+9]=0;
-    //SP=userSP;
+
+    // Reset MODE_FLAG
+    [ProcessTable+9] = 0;
+
     ireturn;
+
 endif;
 
-if(syscall==INT_REMUSR) then //23
-    [ProcessTable+9]=INT_REMUSR;
-    if([SYSTEM_STATUS_TABLE]!=1 || pid!=2) then
-        [retadd]=-1;
+
+
+// =========================
+// REMUSR (23)
+// =========================
+
+if (syscall == INT_REMUSR) then
+
+    // Set MODE_FLAG
+    [ProcessTable+9] = INT_REMUSR;
+
+    // Permission check
+    if ([SYSTEM_STATUS_TABLE] != 1 || pid != 2) then
+
+        [retadd] = -2;
+
     else
-        if(username=="root" || username=="kernel") then
-            [retadd]=-2;
+
+        // Protect root and kernel
+        if (username == "root" || username == "kernel") then
+
+            [retadd] = -2;
+
         else
-            R3=0;
-            while(R3<MAX_USER_NUM) do
-                R7=USER_TABLE+2*R3;
-                if([R7]==-1) then
+
+            R3 = 0;
+
+            // Find user entry
+            while (R3 < MAX_USER_NUM) do
+
+                R7 = USER_TABLE + 2*R3;
+
+                if ([R7] == username) then
                     break;
                 endif;
-                R3=R3+1;
+
+                R3 = R3 + 1;
+
             endwhile;
 
-            if(R3 < MAX_USER_NUM) then
-                R5=0;
-                while(R5<MAX_FILE_NUM) do
-                    R7=ROOT_FILE+8*R5;
-                    if([R7+3]==username) then
-                        [retadd]=-3;
-                        [ProcessTable+9]=0;
+
+            if (R3 < MAX_USER_NUM) then
+
+                R5 = 0;
+
+                // Check undeleted files
+                while (R5 < MAX_FILE_NUM) do
+
+                    R7 = ROOT_FILE + 8*R5;
+
+                    if ([R7+3] == username) then
+
+                        [retadd] = -3;
+
+                        [ProcessTable+9] = 0;
+
                         ireturn;
+
                     endif;
-                    R5=R5+1;
+
+                    R5 = R5 + 1;
+
                 endwhile;
-                [USER_TABLE+2*R3]=-1;
-                [USER_TABLE+2*R3+1]=-1;
+
+                // Invalidate user entry
+                [USER_TABLE + 2*R3] = -1;
+                [USER_TABLE + 2*R3 + 1] = -1;
+
+                [retadd] = 0;
+
             else
-                [retadd]=-1;
+
+                [retadd] = -1;
+
             endif;
+
         endif;
+
     endif;
-    [ProcessTable+9]=0;
+
+    // Reset MODE_FLAG
+    [ProcessTable+9] = 0;
+
     ireturn;
+
 endif;
 
-if(syscall==INT_SETPWD) then //24
-        [ProcessTable+9]=INT_SETPWD;
-        if(pid!=2) then
-            [retadd]=-1;
-        else
-            R3=0;
-            while(R3<MAX_USER_NUM) do
-                R7=USER_TABLE+2*R3;
-                if([R7]==username) then
-                    break;
-                endif;
-                R3=R3+1;
-            endwhile;
-            if(R3 < MAX_USER_NUM) then
-                if([ProcessTable+3]!=R3 && [SYSTEM_STATUS_TABLE]!=1) then
-                    [retadd]=-1;
-                else
-                    encrypt password;
-                    [USER_TABLE+2*R3+1]=password;
-                    [retadd]=0;
-                endif;
-            else
-                [retadd]=-2;
-            endif;
-        endif;
-    [ProcessTable+9]=0;
-    ireturn;
-endif;
 
-if(syscall==INT_GETUID) then//26
-    [ProcessTable+9]=INT_GETUNAME;
-    R3=0;
-    R8=-1;
-    while(R3<MAX_USER_NUM) do
-        R7=USER_TABLE+2*R3;
-        if(R7==username) then
-            [retadd]=R3;
-            R3=-1;
-            break;
-        endif;
-        R3=R3+1;
-    endwhile;
-    if(R3!=-1) then
-        [retadd]=-1;
-    endif;
-    breakpoint;
-    ireturn;
-endif;
 
-if(syscall==INT_GETUNAME) then//25
-    [ProcessTable+9]=INT_GETUNAME;
-    if(username<0 || username > 15) then
-        [retadd]=-1;
+// =========================
+// SETPWD (24)
+// =========================
+
+if (syscall == INT_SETPWD) then
+
+    // Set MODE_FLAG
+    [ProcessTable+9] = INT_SETPWD;
+
+    // Only shell process
+    if (pid != 2) then
+
+        [retadd] = -1;
+
     else
-        R7=USER_TABLE+2*username;
-        if([R7]==-1) then
-            [retadd]=-1;
+
+        R3 = 0;
+
+        // Find user entry
+        while (R3 < MAX_USER_NUM) do
+
+            R7 = USER_TABLE + 2*R3;
+
+            if ([R7] == username) then
+                break;
+            endif;
+
+            R3 = R3 + 1;
+
+        endwhile;
+
+
+        if (R3 < MAX_USER_NUM) then
+
+            // Authorization check
+            if ([ProcessTable+3] != R3 && [SYSTEM_STATUS_TABLE] != 1) then
+
+                [retadd] = -1;
+
+            else
+
+                // Encrypt new password
+                encrypt password;
+
+                // Update password
+                [USER_TABLE + 2*R3 + 1] = password;
+
+                [retadd] = 0;
+
+            endif;
+
         else
-            [retadd]=[R7];
+
+            [retadd] = -2;
+
         endif;
+
     endif;
-    [ProcessTable+9]=0;
+
+    // Reset MODE_FLAG
+    [ProcessTable+9] = 0;
+
     ireturn;
+
+endif;
+
+
+
+// =========================
+// GETUID (26)
+// =========================
+
+if (syscall == INT_GETUID) then
+
+    // Set MODE_FLAG
+    [ProcessTable+9] = INT_GETUID;
+
+    R3 = 0;
+
+    // Search username
+    while (R3 < MAX_USER_NUM) do
+
+        R7 = USER_TABLE + 2*R3;
+
+        if ([R7] == username) then
+
+            [retadd] = R3;
+
+            R3 = -1;
+
+            break;
+
+        endif;
+
+        R3 = R3 + 1;
+
+    endwhile;
+
+
+    if (R3 != -1) then
+        [retadd] = -1;
+    endif;
+
+    // Reset MODE_FLAG
+    [ProcessTable+9] = 0;
+
+    ireturn;
+
+endif;
+
+
+
+// =========================
+// GETUNAME (25)
+// =========================
+
+if (syscall == INT_GETUNAME) then
+
+    // Set MODE_FLAG
+    [ProcessTable+9] = INT_GETUNAME;
+
+    // Validate userid
+    if (username < 0 || username > 15) then
+
+        [retadd] = -1;
+
+    else
+
+        R7 = USER_TABLE + 2*username;
+
+        if ([R7] == -1) then
+
+            [retadd] = -1;
+
+        else
+
+            [retadd] = [R7];
+
+        endif;
+
+    endif;
+
+    // Reset MODE_FLAG
+    [ProcessTable+9] = 0;
+
+    ireturn;
+
 endif;

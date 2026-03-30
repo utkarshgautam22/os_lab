@@ -1,170 +1,326 @@
-if(R1==1) then
-R2=0;
-while([PROCESS_TABLE+R2*16+4]!=TERMINATED && R2<16) do
-R2=R2+1;
-endwhile;
-R0=-1;
-if(R2<16) then
-[PROCESS_TABLE+16*R2+4]= ALLOCATED;
-[PROCESS_TABLE+16*R2+1]=R2;
-[PROCESS_TABLE+16*R2+14]=PAGE_TABLE_BASE+20*R2;
-[PROCESS_TABLE+16*R2+15]=10;
-R0=R2;
-endif;
-return;
-endif;
+// ===============================
+// Process Manager Module
+// ===============================
 
-if(R1==2) then
-R3=[PROCESS_TABLE+16*R2+11];
-alias PrntPerProcess R5;
-PrntPerProcess=[PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1]+11]*512+496;
-R6=0;
-while(R6<8) do
-    if([PrntPerProcess+2*R6]==1) then
-        multipush(R1,R2,R3,R4,R5,R6);
-        R1=RELEASE_SEMAPHORE;
-        R2=[PrntPerProcess+2*R6+1];
-        R3=[SYSTEM_STATUS_TABLE+1];
-        call MOD_0;
-        multipop(R1,R2,R3,R4,R5,R6);
-    endif;
-    if([PrntPerProcess+2*R6]==FILE) then
-        multipush(R1,R2,R3,R4,R5,R6);
-        R1=CLOSE;
-        R2=[PrntPerProcess+2*R6+1];
-        call MOD_3;
-        multipop(R1,R2,R3,R4,R5,R6);
-    endif;
-    R6=R6+2;
-endwhile;
-multipush(R1,R2,R3);
-R2=R3;
-R1=2;
-call MOD_2;
-multipop(R1,R2,R3);
-return;
-endif;
+// Function Number = 1
+// GET_PCB_ENTRY
+// Returns index of free PCB or -1 if full
 
-if(R1==3) then
-multipush(R1,R2,R3);
-R1=4;
-call MOD_1;
-multipop(R1,R2,R3);
-multipush(R1,R2,R3);
-R1=2;
-call MOD_1;
-multipop(R1,R2,R3);
+if (R1 == GET_PCB_ENTRY) then        // Function Number = 1
 
-if([PROCESS_TABLE+R2*16+9]!=9) then
-R3=0;
-while(R3<16) do
-if([PROCESS_TABLE+16*R3+4]==WAIT_PROCESS && [PROCESS_TABLE+16*R3+5]==R2) then
-[PROCESS_TABLE+16*R3+4]=READY;
-endif;
-if([PROCESS_TABLE+16*R3+2]==R2) then
-[PROCESS_TABLE+16*R3+2]=-1;
-endif;
-R3=R3+1;
-endwhile;
-endif;
-[PROCESS_TABLE+16*R2+4]=TERMINATED;
-return;
-endif;
+    R2 = 0;
 
-if(R1==4) then
-R3=0;
-while(R3<10) do
-multipush(R1,R2,R3);
-R1=2;
-R2=[PAGE_TABLE_BASE+20*R2+2*R3];
-if(R2>0) then
-call MOD_2;
-endif;
-multipop(R1,R2,R3);
-[PAGE_TABLE_BASE+20*R2+2*R3]=-1;
-[PAGE_TABLE_BASE+20*R2+2*R3+1]="0000";
-R3=R3+1;
-endwhile;
-
-
-multipush(R1,R2,R3);
-R1=4;
-R3=[SYSTEM_STATUS_TABLE+1];
-R2=[DISK_MAP_TABLE+10*R3+3];
-call MOD_2;
-multipop(R1,R2,R3);
-multipush(R1,R2,R3);
-R1=4;
-R3=[SYSTEM_STATUS_TABLE+1];
-R2=[DISK_MAP_TABLE+10*R3+3];
-call MOD_2;
-multipop(R1,R2,R3);
-multipush(R1,R2,R3);
-R1=4;
-R3=[SYSTEM_STATUS_TABLE+1];
-R2=[DISK_MAP_TABLE+10*R3+3];
-call MOD_2;
-multipop(R1,R2,R3);
-multipush(R1,R2,R3);
-R1=4;
-R3=[SYSTEM_STATUS_TABLE+1];
-R2=[DISK_MAP_TABLE+10*R3+3];
-call MOD_2;
-multipop(R1,R2,R3);
-
-R3=0;
-while(R3<10) do
-[DISK_MAP_TABLE+10*R2+R3]=-1;
-R3=R3+1;
-endwhile;
-
-return;
-endif;
-
-if(R1==KILL_ALL) then
-    R1=0;
-    while(R1<MAX_FILE_NUM) do
-        R2=INODE_TABLE+16*R1;
-        if([R2+1]!=-1) then
-            multipush(R1,R2);
-            R2=R1;
-            R1=ACQUIRE_INODE;
-            R3=[SYSTEM_STATUS_TABLE+1];
-            call MOD_0;
-            multipop(R1,R2);
-        endif;
-        R1=R1+1;
+    while (R2 < MAX_PROC_NUM &&
+           [PROCESS_TABLE + R2 * 16 + 4] != TERMINATED) do
+        R2 = R2 + 1;
     endwhile;
 
-    R1=2;
-    R2=[SYSTEM_STATUS_TABLE+1];
-    while(R1<MAX_PROC_NUM) do
-        if(R1!=R2 && [PROCESS_TABLE+R1*16+4]!=TERMINATED) then
-            multipush(R1,R2);
-            R2=R1;
-            R1=EXIT_PROCESS;
-            call MOD_1;
-            multipop(R1,R2);
+    R0 = -1;
+
+    if (R2 < MAX_PROC_NUM) then
+
+        // Set state
+        [PROCESS_TABLE + 16 * R2 + 4] = ALLOCATED;
+
+        // Set PID
+        [PROCESS_TABLE + 16 * R2 + 1] = R2;
+
+        // Set PTBR
+        [PROCESS_TABLE + 16 * R2 + 14] =
+            PAGE_TABLE_BASE + 20 * R2;
+
+        // Set PTLR
+        [PROCESS_TABLE + 16 * R2 + 15] = 10;
+
+        R0 = R2;
+
+    endif;
+
+    return;
+
+endif;
+
+
+
+// Function Number = 2
+// FREE_USER_AREA_PAGE
+// Frees resources and user area page
+
+if (R1 == FREE_USER_AREA_PAGE) then      // Function Number = 2
+
+    // Get user area page
+    R3 = [PROCESS_TABLE + 16 * R2 + 11];
+
+    alias PerProcess R5;
+    PerProcess =
+        [PROCESS_TABLE + 16 *
+        [SYSTEM_STATUS_TABLE + 1] + 11] * 512 + 496;
+
+    R6 = 0;
+
+    while (R6 < 8) do
+
+        // Release semaphore
+        if ([PerProcess + 2 * R6] == 1) then
+
+            multipush(R1, R2, R3, R4, R5, R6);
+
+            R1 = RELEASE_SEMAPHORE;
+            R2 = [PerProcess + 2 * R6 + 1];
+            R3 = [SYSTEM_STATUS_TABLE + 1];
+
+            call MOD_0;
+
+            multipop(R1, R2, R3, R4, R5, R6);
+
         endif;
-        R1=R1+1;
+
+        // Close file
+        if ([PerProcess + 2 * R6] == FILE) then
+
+            multipush(R1, R2, R3, R4, R5, R6);
+
+            R1 = CLOSE;
+            R2 = [PerProcess + 2 * R6 + 1];
+
+            call MOD_3;
+
+            multipop(R1, R2, R3, R4, R5, R6);
+
+        endif;
+
+        R6 = R6 + 2;
+
     endwhile;
 
-    R1=0;
-    while(R1<MAX_FILE_NUM) do
-        R2=INODE_TABLE+16*R1;
-        if([R2+1]!=-1) then
-            multipush(R1,R2);
-            R2=R1;
-            R1=RELEASE_INODE;
-            R3=[SYSTEM_STATUS_TABLE+1];
-            call MOD_0;
-            multipop(R1,R2);
+    // Release user area page
+
+    multipush(R1, R2, R3);
+
+    R2 = R3;
+    R1 = RELEASE_PAGE;
+
+    call MOD_2;
+
+    multipop(R1, R2, R3);
+
+    return;
+
+endif;
+
+
+
+// Function Number = 3
+// EXIT_PROCESS
+// Terminates process
+
+if (R1 == EXIT_PROCESS) then        // Function Number = 3
+
+    // Free page table
+
+    multipush(R1, R2, R3);
+
+    R1 = FREE_PAGE_TABLE;
+
+    call MOD_1;
+
+    multipop(R1, R2, R3);
+
+    // Free user area page
+
+    multipush(R1, R2, R3);
+
+    R1 = FREE_USER_AREA_PAGE;
+
+    call MOD_1;
+
+    multipop(R1, R2, R3);
+
+
+    // Wake waiting processes and orphan children
+
+    if ([PROCESS_TABLE + R2 * 16 + 9] != 9) then
+
+        R3 = 0;
+
+        while (R3 < MAX_PROC_NUM) do
+
+            // Wake waiters
+
+            if ([PROCESS_TABLE + 16 * R3 + 4]
+                == WAIT_PROCESS &&
+                [PROCESS_TABLE + 16 * R3 + 5]
+                == R2) then
+
+                [PROCESS_TABLE + 16 * R3 + 4] = READY;
+
+            endif;
+
+            // Orphan children
+
+            if ([PROCESS_TABLE + 16 * R3 + 2] == R2) then
+
+                [PROCESS_TABLE + 16 * R3 + 2] = -1;
+
+            endif;
+
+            R3 = R3 + 1;
+
+        endwhile;
+
+    endif;
+
+    // Set state terminated
+
+    [PROCESS_TABLE + 16 * R2 + 4] = TERMINATED;
+
+    return;
+
+endif;
+
+
+
+// Function Number = 4
+// FREE_PAGE_TABLE
+// Frees memory pages and disk blocks
+
+if (R1 == FREE_PAGE_TABLE) then        // Function Number = 4
+
+    R3 = 0;
+
+    // Free memory pages
+
+    while (R3 < 10) do
+
+        multipush(R1, R2, R3);
+
+        R1 = RELEASE_PAGE;
+        R2 = [PAGE_TABLE_BASE + 20 * R2 + 2 * R3];
+
+        if (R2 > 0) then
+            call MOD_2;
         endif;
-        R1=R1+1;
+
+        multipop(R1, R2, R3);
+
+        // Invalidate entry
+
+        [PAGE_TABLE_BASE + 20 * R2 + 2 * R3] = -1;
+        [PAGE_TABLE_BASE + 20 * R2 + 2 * R3 + 1] = "0000";
+
+        R3 = R3 + 1;
+
+    endwhile;
+
+
+
+    // Free disk map blocks
+
+    R3 = 0;
+
+    while (R3 < 10) do
+
+        [DISK_MAP_TABLE + 10 * R2 + R3] = -1;
+
+        R3 = R3 + 1;
+
     endwhile;
 
     return;
+
 endif;
 
 
-            
+
+// Function Number = 5
+// KILL_ALL
+// Kills all processes except current, idle, init
+
+if (R1 == KILL_ALL) then        // Function Number = 5
+
+
+    // Lock all files
+
+    R1 = 0;
+
+    while (R1 < MAX_FILE_NUM) do
+
+        R2 = INODE_TABLE + 16 * R1;
+
+        if ([R2 + 1] != -1) then
+
+            multipush(R1, R2);
+
+            R2 = R1;
+            R1 = ACQUIRE_INODE;
+            R3 = [SYSTEM_STATUS_TABLE + 1];
+
+            call MOD_0;
+
+            multipop(R1, R2);
+
+        endif;
+
+        R1 = R1 + 1;
+
+    endwhile;
+
+
+
+    // Kill processes
+
+    R1 = 2;
+    R2 = [SYSTEM_STATUS_TABLE + 1];
+
+    while (R1 < MAX_PROC_NUM) do
+
+        if (R1 != R2 &&
+            [PROCESS_TABLE + R1 * 16 + 4]
+            != TERMINATED) then
+
+            multipush(R1, R2);
+
+            R2 = R1;
+            R1 = EXIT_PROCESS;
+
+            call MOD_1;
+
+            multipop(R1, R2);
+
+        endif;
+
+        R1 = R1 + 1;
+
+    endwhile;
+
+
+
+    // Release file locks
+
+    R1 = 0;
+
+    while (R1 < MAX_FILE_NUM) do
+
+        R2 = INODE_TABLE + 16 * R1;
+
+        if ([R2 + 1] != -1) then
+
+            multipush(R1, R2);
+
+            R2 = R1;
+            R1 = RELEASE_INODE;
+            R3 = [SYSTEM_STATUS_TABLE + 1];
+
+            call MOD_0;
+
+            multipop(R1, R2);
+
+        endif;
+
+        R1 = R1 + 1;
+
+    endwhile;
+
+    return;
+
+endif;

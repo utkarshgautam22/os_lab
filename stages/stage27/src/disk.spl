@@ -1,14 +1,39 @@
-[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+13]=SP;
-SP=[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11]*512-1;
+// Save user stack pointer
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 13] = SP;
+
+// Switch to kernel stack
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 11] * 512 - 1;
+
+// Save CPU register context
 backup;
-[DISK_STATUS_TABLE]=0;
-R1=1;
-while(R1<16) do
-if([PROCESS_TABLE+16*R1+4]==WAIT_DISK) then
-[PROCESS_TABLE+16*R1+4]=READY;
-endif;
-R1=R1+1;
+
+
+
+// Mark disk device as free
+[DISK_STATUS_TABLE] = 0;
+
+
+
+// Wake all processes waiting for disk
+R1 = 0;
+
+while(R1 < 16) do
+
+    if([PROCESS_TABLE + 16 * R1 + 4] == WAIT_DISK) then
+        [PROCESS_TABLE + 16 * R1 + 4] = READY;
+    endif;
+
+    R1 = R1 + 1;
+
 endwhile;
+
+
+
+// Restore CPU register context
 restore;
-SP=[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+13];
+
+// Restore user stack pointer
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 13];
+
+// Return from interrupt
 ireturn;

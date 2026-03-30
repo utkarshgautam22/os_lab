@@ -1,41 +1,94 @@
 alias CurId R0;
+// Get current running process ID
 CurId=[SYSTEM_STATUS_TABLE+1];
+
+// Save BP of current process on its kernel stack
 SP=SP+1;
 [SP] = BP;
+
 alias CurProcessTable R1;
 CurProcessTable = PROCESS_TABLE+CurId*16;
+
+// Save paging context of current process
 [CurProcessTable+15] = PTLR;
 [CurProcessTable+14] = PTBR;
+
+// Save kernel stack pointer offset
 [CurProcessTable+12] = SP%512;
+
 alias NewId R2;
-NewId=CurId+1;
-while(NewId<16) do
-CurProcessTable = PROCESS_TABLE+NewId*16+4;
-if([CurProcessTable]==READY || [CurProcessTable]==CREATED) then
-break;
+// Check if paging operation is in progress
+if([SYSTEM_STATUS_TABLE+5]!=-1) then
+    R3=PROCESS_TABLE+16*15+4;
+
+    // If swapper daemon is ready, schedule it
+    if([R3]==READY) then
+        NewId=15;
+    else
+        // Otherwise schedule idle process
+        NewId=0;
+    endif;
+
 else
-NewId=NewId+1;
+    // Round-robin search for next READY or CREATED process
+    NewId=CurId+1;
+
+    while(NewId<16) do
+        CurProcessTable = PROCESS_TABLE+NewId*16;
+
+        // Select process only if it is not swapped out
+        if([CurProcessTable+6]!=1 && ([CurProcessTable+4]==READY || [CurProcessTable+4]==CREATED)) then
+            break;
+        else
+            NewId=NewId+1;
+        endif;
+
+    endwhile;
+
 endif;
-endwhile;
+
+// Wrap around to idle process if end reached
 if(NewId==16) then
-NewId=0;
+    NewId=0;
 endif;
+// Load process table entry of selected process
 CurProcessTable = PROCESS_TABLE+NewId*16;
+
+// Restore kernel stack pointer
 SP=[CurProcessTable+11]*512+[CurProcessTable+12];
+
+// Restore page table registers
 PTBR=[CurProcessTable+14];
 PTLR=[CurProcessTable+15];
+
+// Update currently running process ID
 [SYSTEM_STATUS_TABLE+1]=NewId;
 
+// If process is newly created, start execution from user entry
 if([CurProcessTable+4]==CREATED) then
-SP=[CurProcessTable+13];
-BP=[[CurProcessTable+11]*512];
+    // Set SP to user stack pointer
+    SP=[CurProcessTable+13];
 
-[CurProcessTable+4] = RUNNING;
-[CurProcessTable+9]=0;
-ireturn;
+    // Restore BP saved at base of kernel stack
+    BP=[[CurProcessTable+11]*512];
+
+    // Mark process as running
+    [CurProcessTable+4] = RUNNING;
+
+    // Reset mode flag
+    [CurProcessTable+9]=0;
+
+    // Switch to user mode
+    ireturn;
+
 endif;
-[CurProcessTable+4] = RUNNING;
-BP=[SP];
-SP=SP-1;
-return;
 
+[CurProcessTable+4] = RUNNING;
+
+// Restore BP from top of kernel stack
+BP=[SP];
+
+// Pop BP entry
+SP=SP-1;
+
+return;

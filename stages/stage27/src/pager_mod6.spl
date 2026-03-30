@@ -1,0 +1,193 @@
+alias functionNum R1;
+alias pid R2;
+
+if(functionNum==SWAP_IN) then
+    alias cnt R1;
+    cnt = 3;
+    R5 = 15;     // index of process to swap in
+    R4 = 0;      // highest tick value found
+
+    // Find swapped process in READY state with highest TICK
+    while(cnt < 15) do
+        R3 = PROCESS_TABLE + 16 * cnt;
+        if([R3 + 6] == 1 && [R3 + 4] == READY && [R3] > R4) then
+            R4 = [R3];
+            R5 = cnt;
+        endif;
+        cnt = cnt + 1;
+    endwhile;
+
+    if(R5 < 15) then
+        R3 = PROCESS_TABLE + 16 * R5;
+        R4 = PAGE_TABLE_BASE + 20 * R5;
+        R1 = DISK_MAP_TABLE + 10 * R5;
+        // Reset tick since process is getting CPU opportunity again
+        [R3] = 0;
+        R6 = 0;
+
+        // Bring heap and stack pages back into memory
+        while(R6 < 4) do
+            // Select correct disk map entry 
+            if(R6 < 2) then
+                R7 = 2 + R6;          // heap page index
+            else
+                R7 = 8 + (R6 - 2);    // stack page index
+            endif;
+            // If page exists in swap
+            if([R1 + R7] != -1) then
+                multipush(R1,R2,R3,R4,R5,R6,R7);
+                // Allocate a free physical memory page
+                R1 = GET_FREE_PAGE;
+                call MOD_2;
+                multipop(R1,R2,R3,R4,R5,R6,R7);
+                // Update page table with new memory page
+                [R4 + 2 * R7] = R0;
+                [R4 + 2 * R7 + 1] = "0110";
+                multipush(R1,R2,R3,R4,R5,R6,R7);
+                // Load page data from disk into memory
+                R4 = [R1 + R7];
+                R1 = DISK_LOAD;
+                R2 = pid;
+                R3 = R0;
+                call MOD_4;
+                multipop(R1,R2,R3,R4,R5,R6,R7);
+                multipush(R1,R2,R3,R4,R5,R6,R7);
+                // Free the swap block after loading
+                R2 = [R1 + R7];
+                R1 = RELEASE_BLOCK;
+                call MOD_2;
+                multipop(R1,R2,R3,R4,R5,R6,R7);
+                // Mark disk map entry as empty
+                [R1 + R7] = -1;
+            endif;
+            R6 = R6 + 1;
+        endwhile;
+
+        // Process is now fully in memory
+        [R3 + 6] = 0;
+        // Update system swap statistics
+        [SYSTEM_STATUS_TABLE + 4] = [SYSTEM_STATUS_TABLE + 4] - 1;
+        // Paging operation finished
+        [SYSTEM_STATUS_TABLE + 5] = -1;
+    else
+        // No swapped READY process found
+        [SYSTEM_STATUS_TABLE + 5] = -1;
+    endif;
+    return;
+endif;
+
+if(functionNum == SWAP_OUT) then
+    R3 = 3;
+    R4 = 0;
+    R5 = 15;
+    R6 = 15;
+
+    // Find a process to swap out
+    // Priority: WAIT_PROCESS → WAIT_SEMAPHORE → highest TICK
+    while(R3 < 15) do
+        R8 = PROCESS_TABLE + 16 * R3;
+        // Consider only processes in memory and not terminated/allocated
+        if([R8 + 6] == 0 && [R8 + 4] != TERMINATED && [R8 + 4] != ALLOCATED) then
+            if([R8 + 4] == WAIT_PROCESS) then
+                break;
+            endif;
+            if([R8 + 4] == WAIT_SEMAPHORE) then
+                R6 = R3;
+            endif;
+            if([R8] > R4) then
+                R4 = [R8];
+                R5 = R3;
+            endif;
+        endif;
+        R3 = R3 + 1;
+    endwhile;
+
+    // Select final victim process
+    if(R3 < 15) then
+        R4 = R3;
+    else
+        if(R6 < 15) then
+            R4 = R6;
+        else
+            if(R5 < 15) then
+                R4 = R5;
+            else
+                // No process eligible for swapping
+                [SYSTEM_STATUS_TABLE + 5] = -1;
+                return;
+            endif;
+        endif;
+    endif;
+    // Get process table entry
+    alias nProcessTable R3;
+    nProcessTable = PROCESS_TABLE + 16 * R4;
+    // Reset TICK when process goes to swap
+    [nProcessTable] = 0;
+
+    // Release valid code pages
+    R5 = PAGE_TABLE_BASE + 20 * R4 + 8;
+    R6 = 0;
+    while(R6 < 4) do
+        R7 = [R5 + 2 * R6];
+        if(R7 != -1) then
+            multipush(R1,R2,R3,R4,R5,R6);
+            R1 = RELEASE_PAGE;
+            R2 = R7;
+            call MOD_2;
+            multipop(R1,R2,R3,R4,R5,R6);
+            // Invalidate page table entry
+            [R5 + 2 * R6] = -1;
+            [R5 + 2 * R6+1] = "0000";
+        endif;
+        R6 = R6 + 1;
+    endwhile;
+
+    // Move page table entry 
+    R5 = PAGE_TABLE_BASE + 20 * R4;
+    R1=DISK_MAP_TABLE+10*R4;
+    R6 = 0;
+    while(R6 < 4) do
+        // Determine disk map index
+        if(R6 < 2) then
+            R7 = 2 + R6;      // heap pages
+        else
+            R7 = 8 + (R6 - 2); // stack pages
+        endif;
+        // Check if page is present and not shared in memory
+        if([MEMORY_FREE_LIST + [R5+2*R7]] == 1) then
+            multipush(R1,R2,R3,R4,R5,R6,R7);
+            // Allocate swap block
+            R1 = GET_SWAP_BLOCK;
+            call MOD_2;
+            multipop(R1,R2,R3,R4,R5,R6,R7);
+            // Save disk block number
+            [R1 + R7] = R0;
+            multipush(R1,R2,R3,R4,R5,R6,R7);
+            // Store page to disk
+            R1 = DISK_STORE;
+            R2 = pid;
+            R3 = [R5+2*R7];
+            R4 = R0;
+            call MOD_4;
+            multipop(R1,R2,R3,R4,R5,R6,R7);
+            multipush(R1,R2,R3,R4,R5,R6,R7);
+            // Free memory page
+            R1 = RELEASE_PAGE;
+            R2 = [R5+2*R7];
+            call MOD_2;
+            multipop(R1,R2,R3,R4,R5,R6,R7);
+            // Invalidate page entry
+            [R5+2*R7] = -1;
+            [R5 + 2 * R6+1] = "0000";
+        endif;
+        R6 = R6 + 1;
+    endwhile;
+
+    // Mark process as swapped out
+    [nProcessTable + 6] = 1;
+    // Increment swap count
+    [SYSTEM_STATUS_TABLE + 4] = [SYSTEM_STATUS_TABLE + 4] + 1;
+    // Reset paging status (swap complete)
+    [SYSTEM_STATUS_TABLE + 5] = -1;
+    return;
+endif;

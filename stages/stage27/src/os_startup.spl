@@ -2,8 +2,12 @@ loadi(69,11);
 loadi(70,12);
 loadi(54,67);
 loadi(55,68);
-SP=82*512-1;
+SP=76*512-1;
 call BOOT_MODULE;
+
+// ==========================================================
+// IDLE PROGRAM SETUP
+// ================
 PTBR=PAGE_TABLE_BASE;  //as PID of idle process is 0
 
 //Library
@@ -32,14 +36,70 @@ PTBR=PAGE_TABLE_BASE;  //as PID of idle process is 0
 [PTBR+17] = "0110";
 [PTBR+18] = -1;
 [PTBR+19] = "0000";
-[70*512] = [69*512+1];
 SP=8*512;
-[PROCESS_TABLE+15] = 10;
-[PROCESS_TABLE+14] = PTBR;
-[PROCESS_TABLE+13]=8*512;
-[PROCESS_TABLE+12]=0;
-[PROCESS_TABLE+11] = 76;
+
+[PROCESS_TABLE]=0;
 [PROCESS_TABLE+1] = 0;
+[PROCESS_TABLE+2] = 0;
+[PROCESS_TABLE+3] = 0;
 [PROCESS_TABLE+4] = RUNNING;
+[PROCESS_TABLE+11] = 76;
+[PROCESS_TABLE+12]=0;
+[PROCESS_TABLE+13]=8*512;
+[PROCESS_TABLE+14] = PTBR;
+[PROCESS_TABLE+15] = 10;
+[70*512] = [69*512+1];
+
+// ==========================================================
+// SWAPPER PROGRAM SETUP
+// ================
+PTBR=PAGE_TABLE_BASE+20*15;  //as PID of idle process is 0
+R1=PROCESS_TABLE+15*16;
+//Library
+[PTBR+0] = -1;
+[PTBR+1] = "0000";
+[PTBR+2] = -1;
+[PTBR+3] = "0000";
+//Heap
+[PTBR+4] = -1;
+[PTBR+5] = "0000";
+[PTBR+6] = -1;
+[PTBR+7] = "0000";
+
+//Code
+[PTBR+8] = 69;
+[PTBR+9] = "0100";
+[PTBR+10] = -1;
+[PTBR+11] = "0000";
+[PTBR+12] = -1;
+[PTBR+13] = "0000";
+[PTBR+14] = -1;
+[PTBR+15] = "0000";
+
+//Stack
+[PTBR+16] = 81;
+[PTBR+17] = "0110";
+[PTBR+18] = -1;
+[PTBR+19] = "0000";
+
+[R1]=0;
+[R1+1] = 15;
+[R1+2] = 15;
+[R1+3] = 0;
+[R1+4] = CREATED;
+[R1+11] = 82;
+[R1+12]=0;
+[R1+13]=8*512;
+[R1+14] = PTBR;
+[R1+15] = 10;
+[81*512] = [69*512+1];
+
+PTBR=PAGE_TABLE_BASE;
+PTLR=10;
 [SYSTEM_STATUS_TABLE + 1] = 0;
+
+//Library code shared alreadey
+[MEMORY_FREE_LIST+63]=4;
+[MEMORY_FREE_LIST+64]=4;
+
 ireturn;

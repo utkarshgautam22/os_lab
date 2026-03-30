@@ -1,57 +1,116 @@
+// Save user stack pointer
 alias userSP R1;
-userSP=SP;
+userSP = SP;
 
+// Get current process table entry
 alias ProcessTable R2;
-ProcessTable = PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1];
+ProcessTable = PROCESS_TABLE + 16 * [SYSTEM_STATUS_TABLE + 1];
 
+// Get system call number
 alias syscall R3;
-syscall=[[PTBR+2*((userSP-5)/512)]*512+((userSP-5)%512)];
+syscall = [[PTBR + 2 * ((userSP - 5) / 512)] * 512 + ((userSP - 5) % 512)];
 
+// Get username argument
 alias username R4;
-username = [[PTBR+2*((userSP-4)/512)]*512+((userSP-4)%512)];
+username = [[PTBR + 2 * ((userSP - 4) / 512)] * 512 + ((userSP - 4) % 512)];
 
+// Get password argument
 alias password R5;
-password = [[PTBR+2*((userSP-3)/512)]*512+((userSP-3)%512)];
+password = [[PTBR + 2 * ((userSP - 3) / 512)] * 512 + ((userSP - 3) % 512)];
 
-[ProcessTable+13] = userSP;
-SP=[ProcessTable+11]*512;
+// Save user SP and switch to kernel stack
+[ProcessTable + 13] = userSP;
+SP = [ProcessTable + 11] * 512;
 
+// Get current PID
 alias pid R6;
-pid=[SYSTEM_STATUS_TABLE+1];
-if(syscall==INT_LOGIN) then //27
-    [ProcessTable+9]=INT_LOGIN;
-    if(pid!=1) then
-        [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
+pid = [SYSTEM_STATUS_TABLE + 1];
+
+// Handle LOGIN system call
+if (syscall == INT_LOGIN) then    // 27
+
+    // Set MODE_FLAG
+    [ProcessTable + 9] = INT_LOGIN;
+
+    // Check permission: only login process (PID 1) allowed
+    if (pid != 1) then
+
+        // Return -2 (Permission denied)
+        [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + ((userSP - 1) % 512)] = -2;
+
     else
-        R7=0;
-        while(R7<MAX_USER_NUM) do 
-            R8=USER_TABLE+2*R7;
-            if([R8]==username) then
+
+        // Search for username in USER_TABLE
+        alias index R7;
+        index = 0;
+
+        alias userEntry R8;
+        while (index < MAX_USER_NUM) do
+
+            
+            userEntry = USER_TABLE + 2 * index;
+
+            if ([userEntry] == username) then
                 break;
             endif;
-            R7=R7+1;
+
+            index = index + 1;
+
         endwhile;
 
-        if(R7>=MAX_USER_NUM) then
-            [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
+        // Username not found
+        if (index >= MAX_USER_NUM) then
+
+            [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + ((userSP - 1) % 512)] = -1;
+
         else
+
+            // Encrypt input password
             encrypt password;
-            if(password!=[R8+1]) then
-                [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
+
+            // Check password match
+            if (password != [userEntry + 1]) then
+
+                [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + ((userSP - 1) % 512)] = -1;
+
             else
-                R8=PROCESS_TABLE+2*16;
-                [R8+4]=CREATED;
-                [R8+1]=R7;
-                [ProcessTable+4]=WAIT_PROCESS;
-                [ProcessTable+5]=2;
-                [SYSTEM_STATUS_TABLE]=R7;
-                multipush(R1,R2);
+
+                // Prepare shell process (PID 2)
+                alias ShellProcess R9;
+                ShellProcess = PROCESS_TABLE + 16 * 2;
+
+                // Set shell state and user ID
+                [ShellProcess + 4] = CREATED;
+                [ShellProcess + 1] = index;
+
+                // Put login process to wait for shell
+                [ProcessTable + 4] = WAIT_PROCESS;
+                [ProcessTable + 5] = 2;
+
+                // Set current user ID
+                [SYSTEM_STATUS_TABLE] = index;
+
+                // Call scheduler (context switch)
+                multipush(R1, R2);
                 call MOD_5;
-                multipop(R1,R2);
+                multipop(R1, R2);
+
+                // Return success
+                [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + ((userSP - 1) % 512)] = 0;
+
             endif;
+
         endif;
+
     endif;
-    [ProcessTable+9]=0;
-    SP=userSP;
+
+    // Reset MODE_FLAG
+    [ProcessTable + 9] = 0;
+
+    // Restore user stack
+    SP = userSP;
+
+    // Return to user mode
     ireturn;
+
 endif;
