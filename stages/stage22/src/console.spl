@@ -4,6 +4,7 @@ backup;
 alias reqPID R2;
 reqPID = [TERMINAL_STATUS_TABLE+1];
 [PROCESS_TABLE+16*reqPID+8]=P0;
+[PROCESS_TABLE+10]=[PROCESS_TABLE+10]+1;
 multipush(R1,R2,R3);
 R1=9;
 R2=reqPID;

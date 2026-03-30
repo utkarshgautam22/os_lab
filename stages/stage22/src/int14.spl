@@ -1,60 +1,144 @@
 alias userSP R1;
+// Save current user stack pointer
 R1=SP;
+
 alias syscall R2;
+// Read syscall number from user stack
 syscall=[[PTBR+2*((userSP-5)/512)]*512+((userSP-5)%512)];
+
+// Save UserSP
 [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+13]=SP;
+
+// Switch to kernel stack
 SP=[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11]*512;
+[PROCESS_TABLE+10]=[PROCESS_TABLE+10]+1;
 
 if(syscall==19) then
 
-[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=19;
+    // Set mode flag for WAIT_SEMAPHORE
+    [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=19;
 
-alias semid R4;
-R2=[[PTBR+2*((userSP-4)/512)]*512+((userSP-4)%512)];
-R3=[SYSTEM_STATUS_TABLE+1];
-alias PerProcess R5;
-PerProcess=[PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1]+11]*512+496;
-if(R2>7 || R2<0 || [PerProcess+2*R2]!=1) then
-[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
-else
+    // Read semaphore descriptor
+    R2=[[PTBR+2*((userSP-4)/512)]*512+((userSP-4)%512)];
 
-R4=[PerProcess+2*R2+1];
-while([SEMAPHORE_TABLE+4*R4]!=-1) do
-[PROCESS_TABLE+16*R3+4]=WAIT_SEMAPHORE;
-[PROCESS_TABLE+16*R3+5]=R4;
-multipush(R1,R2,R3,R4);
-call MOD_5;
-multipop(R1,R2,R3,R4);
-endwhile;
+    // Current PID
+    R3=[SYSTEM_STATUS_TABLE+1];
 
-[PROCESS_TABLE+16*R3+4]=READY;
-[SEMAPHORE_TABLE+4*R4]=R3;
-[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=0;
-endif;
+    alias PerProcess R5;
+
+    // Locate per-process resource table
+    PerProcess=[PROCESS_TABLE+16*R3+11]*512+496;
+
+    // Validate descriptor range and resource type
+    if(R2>7 || R2<0 || [PerProcess+2*R2]!=1) then
+
+        // Return -1 for invalid descriptor
+        [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
+
+    else
+
+        // Get semaphore table index
+        R4=[PerProcess+2*R2+1];
+
+        // Wait while semaphore is locked by another process
+        while([SEMAPHORE_TABLE+4*R4]!=-1 && [SEMAPHORE_TABLE+4*R4]!=R3) do
+
+            // Block current process on semaphore
+            [PROCESS_TABLE+16*R3+4]=WAIT_SEMAPHORE;
+            [PROCESS_TABLE+16*R3+5]=R4;
+
+            multipush(R1,R2,R3,R4);
+            call MOD_5;
+            multipop(R1,R2,R3,R4);
+
+        endwhile;
+
+        // Acquire semaphore
+        [SEMAPHORE_TABLE+4*R4]=R3;
+
+        // Return success
+        [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=0;
+
+    endif;
+
 endif;
 
 
 if(syscall==20) then
-[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=20;
-R2=[[PTBR+2*((userSP-4)/512)]*512+((userSP-4)%512)];
-R3=[SYSTEM_STATUS_TABLE+1];
-alias PerProcess R5;
-PerProcess=[PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1]+11]*512+496;
-if(R2>7 || R2<0 || [PerProcess+2*R2]!=1) then
-[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
-else
-R4=[PerProcess+2*R2+1];
-[SEMAPHORE_TABLE+4*R4]=-1;
-R5=0;
-while(R5<16) do
-if([PROCESS_TABLE+16*R5+4]==WAIT_SEMAPHORE && [PROCESS_TABLE+16*R5+5]==R4) then
-[PROCESS_TABLE+16*R5+4]=READY;
-endif;
-R5=R5+1;
-endwhile;
-endif;
+
+    // Set mode flag for SIGNAL_SEMAPHORE
+    [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=20;
+
+    // Read semaphore descriptor
+    R2=[[PTBR+2*((userSP-4)/512)]*512+((userSP-4)%512)];
+
+    // Current PID
+    R3=[SYSTEM_STATUS_TABLE+1];
+
+    alias PerProcess R5;
+
+    // Locate per-process resource table
+    PerProcess=[PROCESS_TABLE+16*R3+11]*512+496;
+
+    // Validate descriptor
+    if(R2>7 || R2<0 || [PerProcess+2*R2]!=1) then
+
+        // Return invalid descriptor
+        [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
+
+    else
+
+        // Get semaphore table index
+        R4=[PerProcess+2*R2+1];
+
+        // Check if semaphore is locked
+        if([SEMAPHORE_TABLE+4*R4]!=-1) then
+
+            // If locked by another process, return -2
+            if([SEMAPHORE_TABLE+4*R4]!=R3) then
+
+                [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-2;
+
+            else
+
+                // Unlock semaphore
+                [SEMAPHORE_TABLE+4*R4]=-1;
+
+                R5=0;
+
+                // Wake all processes waiting on this semaphore
+                while(R5<16) do
+
+                    if([PROCESS_TABLE+16*R5+4]==WAIT_SEMAPHORE && [PROCESS_TABLE+16*R5+5]==R4) then
+                        [PROCESS_TABLE+16*R5+4]=READY;
+                    endif;
+
+                    R5=R5+1;
+
+                endwhile;
+
+                // Return success
+                [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=0;
+
+            endif;
+
+        else
+
+            // Semaphore already unlocked, return success
+            [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=0;
+
+        endif;
+
+    endif;
+
 endif;
 
+
+// Reset mode flag after syscall
 [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=0;
+
+// Restore user stack
 SP=userSP;
+
+// Return to user mode
 ireturn;

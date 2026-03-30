@@ -3,6 +3,7 @@ curProcessTable=PROCESS_TABLE+16*([SYSTEM_STATUS_TABLE+1]);
 [curProcessTable+9]=7;
 alias userSP R0;
 userSP=SP;
+[PROCESS_TABLE+10]=[PROCESS_TABLE+10]+1;
 [curProcessTable+13]=userSP;
 SP=[curProcessTable+11]*512-1;
 alias fileDiscriptor R2;

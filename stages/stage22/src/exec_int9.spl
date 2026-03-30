@@ -1,6 +1,7 @@
 alias CurProcess R0;
 CurProcess=PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1];
 [CurProcess+13]=SP;
+[PROCESS_TABLE+10]=[PROCESS_TABLE+10]+1;
 alias userSP R2;
 userSP=SP;
 SP=[CurProcess+11]*512-1;
