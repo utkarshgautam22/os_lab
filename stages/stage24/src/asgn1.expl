@@ -2,19 +2,23 @@ int main()
 {
     decl
         int temp;
-        int pid;
+        int pid,fd;
         string FileName;
     enddecl
 
     begin
         //FileName="numbers.dat";
         read(FileName);
-        pid = exposcall("Open",FileName);
-        pid = exposcall("Read",pid,temp);
+        fd = exposcall("Open",FileName);
+        pid = exposcall("Read",fd,temp);
         write(temp);
-        pid = exposcall("Read",pid,temp);
+        pid = exposcall("Read",fd,temp);
         write(temp);
-        pid = exposcall("Read",pid,temp);
+        pid = exposcall("Read",fd,temp);
+        write(temp);
+        pid = exposcall("Read",fd,temp);
+        write(temp);
+        pid = exposcall("Read",fd,temp);
         write(temp);
         return 0;
     end

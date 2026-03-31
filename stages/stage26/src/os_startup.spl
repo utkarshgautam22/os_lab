@@ -42,4 +42,7 @@ SP=8*512;
 [PROCESS_TABLE+1] = 0;
 [PROCESS_TABLE+4] = RUNNING;
 [SYSTEM_STATUS_TABLE + 1] = 0;
+//Library code shared alreadey
+[MEMORY_FREE_LIST+63]=4;
+[MEMORY_FREE_LIST+64]=4;
 ireturn;
