@@ -1,0 +1,35 @@
+int main()
+{
+	decl
+		int userid,fd,ret,i,p;
+		string username;
+		string name;
+		int owner;
+	enddecl
+	begin
+		read(username);
+        userid = exposcall("Getuid",username);
+        if(userid == -1) then
+            print("User not found");
+        else
+            fd=exposcall("Open","root");
+            if(fd>=0) then
+                while(ret == 0) do
+                    ret=exposcall("Read",fd,name);
+                    p=exposcall("Seek",fd,2);
+                    ret=exposcall("Read",fd,owner);
+                    if(ret == 0) then
+                        if(owner == userid) then
+                            ret = exposcall("Delete",name);
+                        endif;
+                        ret=exposcall("Seek",fd,4);
+                    endif;
+                endwhile;
+                fd=exposcall("Close",fd);
+            else
+                write("not open");
+            endif;
+        end
+		return 0;
+	end
+}

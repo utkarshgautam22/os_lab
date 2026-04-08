@@ -1,0 +1,31 @@
+int main()
+{
+	decl
+		int fd,ret,i,p;
+		string filename;
+		string name;
+	enddecl
+	begin
+		filename="root";
+		ret=0;
+		name="";
+		i=7;
+		fd=exposcall("Open",filename);
+		if(fd>=0) then
+			while(ret == 0) do
+				ret=exposcall("Read",fd,name);
+				if(ret == 0) then
+					if(name != "-1") then
+						write(name);
+					endif;
+					p=exposcall("Seek",fd,i);
+				endif;
+			endwhile;
+			fd=exposcall("Close",fd);
+		else
+			write("not open");
+		endif;
+
+		return 0;
+	end
+}

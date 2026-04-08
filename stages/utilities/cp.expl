@@ -1,0 +1,28 @@
+int main()
+{
+	decl
+		int fdr,fdw,ret;
+		string file1,file2;
+		string data;
+	enddecl
+	begin
+        ret=0;
+        read(file1);
+        read(file2);
+		fdr=exposcall("Open",file1);
+        fdw=exposcall("Open",file2);
+		if(fdr>=0 && fdw>=0) then
+			while(ret == 0) do
+				ret=exposcall("Read",fdr,data);
+				if(ret == 0) then
+                    ret = exposcall("Write",fdw,data);
+				endif;
+			endwhile;
+			fd=exposcall("Close",fd);
+		else
+			write("not open");
+		endif;
+
+		return 0;
+	end
+}

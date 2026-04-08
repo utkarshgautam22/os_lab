@@ -1,0 +1,14 @@
+rm cat.xsm
+rm cp.xsm
+rm ls.xsm
+rm lu.xsm
+rm ru.xsm
+rm debug.xsm
+rm rm.xsm
+load --exec /home/ug/Desktop/myexpos/stages/utilities/cat.xsm
+load --exec /home/ug/Desktop/myexpos/stages/utilities/cp.xsm
+load --exec /home/ug/Desktop/myexpos/stages/utilities/ls.xsm
+load --exec /home/ug/Desktop/myexpos/stages/utilities/lu.xsm
+load --exec /home/ug/Desktop/myexpos/stages/utilities/ru.xsm
+load --exec /home/ug/Desktop/myexpos/stages/utilities/debug.xsm
+load --exec /home/ug/Desktop/myexpos/stages/utilities/rm.xsm

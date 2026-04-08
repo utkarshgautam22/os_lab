@@ -1,0 +1,25 @@
+int main()
+{
+	decl
+		int fd,ret;
+		string filename,name;
+	enddecl
+	begin
+		read(filename);
+		ret=0;
+		fd=exposcall("Open",filename);
+		if(fd>=0) then
+			while(ret == 0) do
+				ret = exposcall("Read",fd,name);
+				if(ret == 0) then
+					write(name);
+				endif;
+			endwhile;
+			fd=exposcall("Close",fd);
+		else
+			write("not open");
+		endif;
+
+		return 0;
+	end
+}
