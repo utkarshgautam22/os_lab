@@ -1,15 +1,15 @@
 int main()
 {
 	decl
-		int id;
+		int id,t;
         string username;
 	enddecl
 	begin
         id = 0;
         while (id < 16) do
-            username = exposcall("Getuname",id);
-            if(username != "-1") then
-                write(username);
+            t = exposcall("Getuname",id);
+            if(t > 0) then
+                write(t);
             endif;
             id = id + 1;
         endwhile;

@@ -27,7 +27,6 @@ R1 = [[PTBR+2*((userSP-4)/512)]*512+((userSP-4)%512)];
 
 // Search file in inode table
 R4 = 0;
-
 while(R4 < MAX_FILE_NUM) do
 
     if(
@@ -220,7 +219,6 @@ endif;
 
 // Reset MODE_FLAG
 [CurProcess+9] = 0;
-
 
 // Return to newly loaded process
 ireturn;

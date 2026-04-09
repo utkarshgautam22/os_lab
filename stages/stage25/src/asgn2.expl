@@ -1,0 +1,29 @@
+int main()
+{
+    decl
+        int temp, perm, Filedesc, cnt, num;
+        string FileName;
+    enddecl
+
+    begin
+        read(FileName);
+        Filedesc = exposcall("Open", FileName);
+        
+        temp = exposcall("Seek", Filedesc,2056);
+        cnt=2000;
+        while(cnt <= 2513) do
+            temp = exposcall("Write",Filedesc,cnt);
+            cnt = cnt + 1;
+        endwhile;
+
+        temp = exposcall("Seek", Filedesc,-1);
+        while(temp >= 0) do
+            temp = exposcall("Read", Filedesc, num);
+            temp = exposcall("Seek", Filedesc,-2);
+            write(num);
+        endwhile;
+        
+        temp = exposcall("Close", Filedesc);
+        return 0;
+    end
+}

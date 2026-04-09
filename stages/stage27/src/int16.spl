@@ -7,7 +7,6 @@ ProcessTable = PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE+1];
 alias syscall R3;
 syscall = [[PTBR + 2*((userSP-5)/512)]*512 + ((userSP-5)%512)];
 
-alias UserId R4;
 alias username R4;
 username = [[PTBR + 2*((userSP-4)/512)]*512 + ((userSP-4)%512)];
 
@@ -309,7 +308,7 @@ endif;
 // =========================
 
 if (syscall == INT_GETUNAME) then
-
+    breakpoint;
     // Set MODE_FLAG
     [ProcessTable+9] = INT_GETUNAME;
 
@@ -327,7 +326,7 @@ if (syscall == INT_GETUNAME) then
             [retadd] = -1;
 
         else
-
+            print [R7];
             [retadd] = [R7];
 
         endif;

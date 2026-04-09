@@ -1,151 +1,425 @@
+// ================= ENTER KERNEL =================
+
+// Save user stack pointer
 alias userSP R1;
-userSP=SP;
+userSP = SP;
+
+// Get syscall number from user stack
 alias syscall R2;
-syscall=[[PTBR+2*((userSP-5)/512)]*512+((userSP-5)%512)];
+syscall =
+    [[PTBR + 2 * ((userSP - 5) / 512)] * 512
+        + ((userSP - 5) % 512)];
 
 
+// Locate current process table entry
 alias process R3;
-process=PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1];
-[process+13]=SP;
-SP=[process+11]*512;
+process =
+    PROCESS_TABLE + 16 * [SYSTEM_STATUS_TABLE + 1];
 
-if(syscall==INT_OPEN) then // open syscall
+// Save USER SP
+[process + 13] = SP;
 
-[process+9]=R2;
+// Switch to kernel stack
+SP = [process + 11] * 512;
 
-alias FileName R4;
-FileName=[[PTBR+2*((userSP-4)/512)]*512+((userSP-4)%512)];
 
-alias PerProcess R5;
-PerProcess = [process+11]*512+RESOURCE_TABLE_OFFSET;
-R6=0;
-while(R6<8) do
-    if([PerProcess+2*R6]==-1) then
-    break;
-    endif;
-    R6=R6+1;
-endwhile;
 
-if(R6>=8) then
-    [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-3;
-else
-    multipush(R1,R3,R5,R6);
-    R2=FileName;
-    R1=OPEN;
-    call MOD_3;
-    multipop(R1,R3,R5,R6);
-    if(R0<0) then
-        [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=R0;
+// ======================================================
+// ================= OPEN SYSTEM CALL ====================
+// ======================================================
+
+if (syscall == INT_OPEN) then
+
+    // Set MODE_FLAG = OPEN
+    [process + 9] = R2;
+
+
+
+    // ================= GET ARGUMENT =================
+
+    alias FileName R4;
+
+    FileName =
+        [[PTBR + 2 * ((userSP - 4) / 512)] * 512
+            + ((userSP - 4) % 512)];
+
+
+
+    // ================= FIND FREE FD =================
+
+    alias PerProcess R5;
+
+    PerProcess =
+        [process + 11] * 512
+            + RESOURCE_TABLE_OFFSET;
+
+    R6 = 0;
+
+    while (R6 < 8) do
+
+        if ([PerProcess + 2 * R6] == -1) then
+            break;
+        endif;
+
+        R6 = R6 + 1;
+
+    endwhile;
+
+
+
+    // No free descriptor
+
+    if (R6 >= 8) then
+
+        [[PTBR + 2 * ((userSP - 1) / 512)] * 512
+            + ((userSP - 1) % 512)] = -3;
+
     else
-        R7=PerProcess+2*R6;
-        [R7]=FILE;
-        [R7+1]=R0;
-        [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=R6;
-    endif;
-endif;
 
-[process+9]=0;
-SP=userSP;
-ireturn;
+        // Call Resource Manager OPEN
 
-endif;
+        multipush(R1, R3, R5, R6);
 
-if(syscall==INT_CLOSE) then // delete syscall
+        R2 = FileName;
+        R1 = OPEN;
 
-[process+9]=syscall;
-
-alias Filedesc R2;
-Filedesc=[[PTBR+2*((userSP-4)/512)]*512+((userSP-4)%512)];
-
-if(R2>7 || R2<0) then
-    [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
-else
-    alias PerProcessEntry R4;
-    PerProcessEntry = [process+11]*512+RESOURCE_TABLE_OFFSET+2*Filedesc;
-    if([PerProcessEntry]!=FILE) then
-        [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
-    else
-        multipush(R1,R3,R4);
-        R1=CLOSE;
-        R2=[PerProcessEntry+1];
         call MOD_3;
-        multipop(R1,R3,R4);
-        [PerProcessEntry]=-1;
-        [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=0;
+
+        multipop(R1, R3, R5, R6);
+
+
+
+        // Error from OPEN
+
+        if (R0 < 0) then
+
+            [[PTBR + 2 * ((userSP - 1) / 512)] * 512
+                + ((userSP - 1) % 512)] = R0;
+
+        else
+
+            // Store file descriptor mapping
+
+            R7 = PerProcess + 2 * R6;
+
+            [R7]     = FILE;
+            [R7 + 1] = R0;
+
+            // Return descriptor
+
+            [[PTBR + 2 * ((userSP - 1) / 512)] * 512
+                + ((userSP - 1) % 512)] = R6;
+
+        endif;
+
     endif;
-endif;
-[process+9]=0;
-SP=userSP;
-ireturn;
+
+
+
+    // Exit syscall
+
+    [process + 9] = 0;
+
+    SP = userSP;
+
+    ireturn;
+
 endif;
 
-if(syscall==INT_SEEK) then
+
+
+// ======================================================
+// ================= CLOSE SYSTEM CALL ===================
+// ======================================================
+
+if (syscall == INT_CLOSE) then
+
+    // Set MODE_FLAG = CLOSE
+    [process + 9] = syscall;
+
+
+
+    // ================= GET ARGUMENT =================
+
+    alias Filedesc R2;
+
+    Filedesc =
+        [[PTBR + 2 * ((userSP - 4) / 512)] * 512
+            + ((userSP - 4) % 512)];
+
+
+
+    // Validate descriptor range
+
+    if (R2 > 7 || R2 < 0) then
+
+        [[PTBR + 2 * ((userSP - 1) / 512)] * 512
+            + ((userSP - 1) % 512)] = -1;
+
+    else
+
+        // Locate per-process entry
+
+        alias PerProcessEntry R4;
+
+        PerProcessEntry =
+            [process + 11] * 512
+                + RESOURCE_TABLE_OFFSET
+                + 2 * Filedesc;
+
+
+
+        // Ensure descriptor refers to file
+
+        if ([PerProcessEntry] != FILE) then
+
+            [[PTBR + 2 * ((userSP - 1) / 512)] * 512
+                + ((userSP - 1) % 512)] = -1;
+
+        else
+
+            // Call Resource Manager CLOSE
+
+            multipush(R1, R3, R4);
+
+            R1 = CLOSE;
+            R2 = [PerProcessEntry + 1];
+
+            call MOD_3;
+
+            multipop(R1, R3, R4);
+
+
+
+            // Clear entry
+
+            [PerProcessEntry] = -1;
+
+            [[PTBR + 2 * ((userSP - 1) / 512)] * 512
+                + ((userSP - 1) % 512)] = 0;
+
+        endif;
+
+    endif;
+
+
+
+    // Exit syscall
+
+    [process + 9] = 0;
+
+    SP = userSP;
+
+    ireturn;
+
+endif;
+
+
+
+// ======================================================
+// ================= SEEK SYSTEM CALL ====================
+// ======================================================
+
+if (syscall == INT_SEEK) then
+
+    // Set MODE_FLAG = 6 (SEEK)
+    [process + 9] = syscall;
+
+
+
+    // ================= GET ARGUMENTS =================
 
     alias Filedesc R4;
-    Filedesc=[[PTBR+2*((userSP-4)/512)]*512+((userSP-4)%512)];
-    alias offset R2;
-    offset=[[PTBR+2*((userSP-3)/512)]*512+((userSP-3)%512)];
 
-    if(Filedesc>7 || Filedesc<0) then
-        [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
+    Filedesc =
+        [[PTBR + 2 * ((userSP - 4) / 512)] * 512
+            + ((userSP - 4) % 512)];
+
+    alias offset R2;
+
+    offset =
+        [[PTBR + 2 * ((userSP - 3) / 512)] * 512
+            + ((userSP - 3) % 512)];
+
+
+
+    // ================= VALIDATE FD =================
+
+    if (Filedesc > 7 || Filedesc < 0) then
+
+        [[PTBR + 2 * ((userSP - 1) / 512)] * 512
+            + ((userSP - 1) % 512)] = -1;
+
     else
+
+        // Locate resource entry
+
         alias PerProcessEntry R5;
-        PerProcessEntry = [process+11]*512+RESOURCE_TABLE_OFFSET+2*Filedesc;
-        if([PerProcessEntry]!=FILE) then
-            [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
+
+        PerProcessEntry =
+            [process + 11] * 512
+                + RESOURCE_TABLE_OFFSET
+                + 2 * Filedesc;
+
+
+
+        if ([PerProcessEntry] != FILE) then
+
+            [[PTBR + 2 * ((userSP - 1) / 512)] * 512
+                + ((userSP - 1) % 512)] = -1;
+
         else
+
+            // ================= LOCATE TABLE ENTRIES =================
+
             alias FileTableEntry R4;
-            FileTableEntry = OPEN_FILE_TABLE+4*[PerProcessEntry+1];
+
+            FileTableEntry =
+                OPEN_FILE_TABLE
+                    + 4 * [PerProcessEntry + 1];
+
             alias inodeR3 R6;
-            inodeR3 = INODE_TABLE+16*[FileTableEntry];
-            multipush(R1,R2,R3,R4,R5,R6);
-            R1=ACQUIRE_INODE;
-            R2=[FileTableEntry];
-            R3=[SYSTEM_STATUS_TABLE+1];
+
+            inodeR3 =
+                INODE_TABLE
+                    + 16 * [FileTableEntry];
+
+
+
+            // ================= ACQUIRE INODE =================
+
+            multipush(R1, R2, R3, R4, R5, R6);
+
+            R1 = ACQUIRE_INODE;
+            R2 = [FileTableEntry];
+            R3 = [SYSTEM_STATUS_TABLE + 1];
+
             call MOD_0;
-            multipop(R1,R2,R3,R4,R5,R6);
-            if(R0!=0) then
-				[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
-			else
-                R7=[FileTableEntry+2]+offset;
-                if(R7<0) then
+
+            multipop(R1, R2, R3, R4, R5, R6);
+
+
+
+            // Lock failed
+
+            if (R0 != 0) then
+
+                [[PTBR + 2 * ((userSP - 1) / 512)] * 512
+                    + ((userSP - 1) % 512)] = -1;
+
+            else
+
+                // ================= CALCULATE NEW POSITION =================
+
+                R7 =
+                    [FileTableEntry + 2]
+                        + offset;
+
+
+
+                // Negative position error
+
+                if (R7 < 0) then
+
                     multipush(R1);
-                    R1=RELEASE_INODE;
-                    R2=[FileTableEntry];
-                    R3=[SYSTEM_STATUS_TABLE+1];
+
+                    R1 = RELEASE_INODE;
+                    R2 = [FileTableEntry];
+                    R3 = [SYSTEM_STATUS_TABLE + 1];
+
                     call MOD_0;
+
                     multipop(R1);
-                    [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-2;
-                    [process+9]=0;
-                    SP=userSP;
+
+                    [[PTBR + 2 * ((userSP - 1) / 512)] * 512
+                        + ((userSP - 1) % 512)] = -2;
+
+                    [process + 9] = 0;
+                    SP = userSP;
+
                     ireturn;
+
                 endif;
-                if(offset==0) then
-                    [FileTableEntry+2]=0;
+
+
+
+                // Offset zero → reset pointer
+
+                if (offset == 0) then
+
+                    [FileTableEntry + 2] = 0;
+
                 else
-                    if([FileTableEntry]==INODE_ROOT) then
-                        R6=480;
+
+                    // Determine file size
+
+                    if ([FileTableEntry] == INODE_ROOT) then
+
+                        R6 = 480;
+
                     else
-                        R6=[inodeR3+2];
+
+                        R6 = [inodeR3 + 2];
+
                     endif;
-                    R7=[FileTableEntry+2]+offset;
-                    if(R7>R6) then
-                        [FileTableEntry+2]=R6;
+
+
+
+                    R7 =
+                        [FileTableEntry + 2]
+                            + offset;
+
+
+
+                    // Clamp to file size
+
+                    if (R7 > R6) then
+
+                        [FileTableEntry + 2] = R6;
+
                     else
-                        [FileTableEntry+2]=R7;
+
+                        [FileTableEntry + 2] = R7;
+
                     endif;
+
                 endif;
+
+
+
+                // ================= RELEASE INODE =================
+
                 multipush(R1);
-                R1=RELEASE_INODE;
-                R2=[FileTableEntry];
-                R3=[SYSTEM_STATUS_TABLE+1];
+
+                R1 = RELEASE_INODE;
+                R2 = [FileTableEntry];
+                R3 = [SYSTEM_STATUS_TABLE + 1];
+
                 call MOD_0;
+
                 multipop(R1);
-                [[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=0;
+
+
+
+                // Success
+
+                [[PTBR + 2 * ((userSP - 1) / 512)] * 512
+                    + ((userSP - 1) % 512)] = 0;
+
             endif;
+
         endif;
+
     endif;
-    [process+9]=0;
-    SP=userSP;
+
+
+
+    // ================= EXIT SEEK =================
+
+    [process + 9] = 0;
+
+    SP = userSP;
+
     ireturn;
+
 endif;

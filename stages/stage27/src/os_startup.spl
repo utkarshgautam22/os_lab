@@ -102,4 +102,5 @@ PTLR=10;
 [MEMORY_FREE_LIST+63]=4;
 [MEMORY_FREE_LIST+64]=4;
 
+[SYSTEM_STATUS_TABLE+5] = 0; // No paging operation in progress
 ireturn;

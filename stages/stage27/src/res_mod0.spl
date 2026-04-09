@@ -145,6 +145,11 @@ if(R1==ACQUIRE_INODE) then
     alias inodeidx R2;
     alias pid R3;
 
+    
+    if([FILE_STATUS_TABLE+4*inodeidx]==pid) then
+        R0=0;
+        return;
+    endif;
     // Wait while inode is locked
     while([FILE_STATUS_TABLE+4*inodeidx]!=-1) do
 

@@ -1,16 +1,30 @@
-[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=10;
-[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+13]=SP;
-SP=[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11]*512-1;
+// Set MODE_FLAG to 10 (Exit)
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 10;
 
-R1=3;
-R2=[SYSTEM_STATUS_TABLE+1];
+// Save USER SP
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 13] = SP;
+
+// Switch to Kernel Stack
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 11] * 512 - 1;
+
+
+// Call exit_process() from Process Manager
+R1 = 3;
+R2 = [SYSTEM_STATUS_TABLE + 1];
 call MOD_1;
-R9=1;
 
-while(R9<16) do
-if([PROCESS_TABLE+16*R9+4]!=TERMINATED) then
-call MOD_5;
-endif;
-R9=R9+1;
+
+// Invoke scheduler (context_switch)
+R9 = 1;
+
+while (R9 < 16) do
+    if ([PROCESS_TABLE + 16 * R9 + 4] != TERMINATED) then
+        call MOD_5;
+    endif;
+
+    R9 = R9 + 1;
 endwhile;
+
+
+// No return to process
 halt;

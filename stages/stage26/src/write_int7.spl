@@ -1,102 +1,305 @@
+// ------------------------------------------------------------
+// WRITE SYSTEM CALL
+// MODE_FLAG = 5
+// ------------------------------------------------------------
+
+// Set MODE_FLAG
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 5;
+
+// Save user SP
 alias userSP R1;
 userSP = SP;
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 13] = userSP;
-SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 11] *512 -1;
+
+// Switch to kernel stack
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 11] * 512 - 1;
+
+
+// ------------------------------------------------------------
+// Get arguments
+// ------------------------------------------------------------
 
 alias FileDesc R2;
 alias word R3;
-FileDesc = [[PTBR+2*(userSP-4)/512]*512+(userSP-4)%512];
-word = [[PTBR+2*(userSP-3)/512]*512+(userSP-3)%512];
+
+FileDesc = [[PTBR + 2 * (userSP - 4) / 512] * 512 + (userSP - 4) % 512];
+word     = [[PTBR + 2 * (userSP - 3) / 512] * 512 + (userSP - 3) % 512];
+
+
+// ------------------------------------------------------------
+// TERMINAL WRITE (STDOUT)
+// ------------------------------------------------------------
 
 if (FileDesc == -2) then
-	multipush(R0,R1,R2,R3,R4,R5);
-	R1=3;
-	R2=[SYSTEM_STATUS_TABLE+1];
-	R3=word;
-	call MOD_4;
-	multipop(R0,R1,R2,R3,R4,R5);
-	alias physicalAddrRetVal R6;
-	physicalAddrRetVal = ([PTBR + 2 * (userSP - 1)/ 512] * 512) + ((userSP - 1) % 512);
-	[physicalAddrRetVal] = 0;
 
-else // file write
+    multipush(R0,R1,R2,R3,R4,R5);
 
-if(FileDesc>7 || FileDesc <0) then
-	[([PTBR + 2 * (userSP - 1)/ 512] * 512) + ((userSP - 1) % 512)]=-1;
-else
-	alias PerProcessEntry R4;
-	PerProcessEntry = [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11]*512+RESOURCE_TABLE_OFFSET+2*FileDesc;
-	if([PerProcessEntry]!=FILE) then
-		[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
-	else
-		alias FileTableEntry R5;
-		FileTableEntry = OPEN_FILE_TABLE+4*[PerProcessEntry+1];
-		alias inodeR3 R6;
-		inodeR3 = INODE_TABLE+16*[FileTableEntry];
-		R8=[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+3];
-		if([inodeR3+4]==EXCLUSIVE && R8!=[inodeR3+3] && R8!=1) then
-			[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-3;
-		else
-			multipush(R1,R2,R3,R4,R5,R6);
-			R1=ACQUIRE_INODE;
-			R2=[FileTableEntry];
-			R3=[SYSTEM_STATUS_TABLE+1];
-			call MOD_0;
-			multipop(R1,R2,R3,R4,R5,R6);
-			if(R0!=0) then
-				[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
-			else
-				if([FileTableEntry+2]==MAX_FILE_SIZE) then
-					[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-2;
-				else
-					if([FileTableEntry+2]%512==0 && [inodeR3+2]==[FileTableEntry+2]) then
-						multipush(R1,R2,R3,R4,R5,R6);
-						R1=GET_FREE_BLOCK;
-						call MOD_2;
-						multipop(R1,R2,R3,R4,R5,R6);
-						if(R0==-1) then
-							multipush(R1,R2,R3,R4,R5,R6);
-							R1=RELEASE_INODE;
-							R2=[FileTableEntry];
-							R3=[SYSTEM_STATUS_TABLE+1];
-							call MOD_0;
-							multipop(R1,R2,R3,R4,R5,R6);
-							[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-2;
-							SP=userSP;
-							[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
-							ireturn;
-						else
-							[inodeR3+8+([FileTableEntry+2]/512)]=R0;
-						endif;
-					endif;
-						multipush(R1,R2,R3,R4,R5,R6);
-						R1=BUFFERED_WRITE;
-						R2=[inodeR3+8+([FileTableEntry+2]/512)];
-						R4=word;
-						R3=[FileTableEntry+2]%512;
-						call MOD_3;
-						multipop(R1,R2,R3,R4,R5,R6);
+    // Call terminal_write
+    R1 = 3;
+    R2 = [SYSTEM_STATUS_TABLE + 1];
+    R3 = word;
 
-						if([FileTableEntry+2]==[inodeR3+2]) then
-							[inodeR3+2]=[inodeR3+2]+1;
-							[ROOT_FILE+[FileTableEntry]*8+1]=[ROOT_FILE+[FileTableEntry]*8+1]+1;
-						endif;
-						[FileTableEntry+2]=[FileTableEntry+2]+1;
-						multipush(R1,R2,R3,R4,R5,R6);
-						R1=RELEASE_INODE;
-						R2=[FileTableEntry];
-						R3=[SYSTEM_STATUS_TABLE+1];
-						call MOD_0;
-						multipop(R1,R2,R3,R4,R5,R6);
-						[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=0;
-				endif;
-			endif;
-		endif;
-	endif;
+    call MOD_4;
+
+    multipop(R0,R1,R2,R3,R4,R5);
+
+    // Set return value = 0
+    alias physicalAddrRetVal R6;
+
+    physicalAddrRetVal =
+        ([PTBR + 2 * (userSP - 1) / 512] * 512)
+        + ((userSP - 1) % 512);
+
+    [physicalAddrRetVal] = 0;
+
+else // --------------------------------------------------------
+     // FILE WRITE
+     // --------------------------------------------------------
+
+    // Check file descriptor validity
+    if(FileDesc > 7 || FileDesc < 0) then
+
+        [([PTBR + 2 * (userSP - 1) / 512] * 512)
+        + ((userSP - 1) % 512)] = -1;
+
+    else
+
+        // Locate per-process resource entry
+        alias PerProcessEntry R4;
+
+        PerProcessEntry =
+            [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 11]
+            * 512
+            + RESOURCE_TABLE_OFFSET
+            + 2 * FileDesc;
+
+        // Check resource type
+        if([PerProcessEntry] != FILE) then
+
+            [[PTBR + 2 * ((userSP - 1) / 512)] * 512
+            + ((userSP - 1) % 512)] = -1;
+
+        else
+
+            // Get open file table entry
+            alias FileTableEntry R5;
+
+            FileTableEntry =
+                OPEN_FILE_TABLE
+                + 4 * [PerProcessEntry + 1];
+
+            // Get inode entry
+            alias inodeR3 R6;
+
+            inodeR3 =
+                INODE_TABLE
+                + 16 * [FileTableEntry];
+
+            // Get current user id
+            R8 =
+                [PROCESS_TABLE
+                + [SYSTEM_STATUS_TABLE + 1] * 16
+                + 3];
+
+            // ------------------------------------------------
+            // Permission check (exclusive file)
+            // ------------------------------------------------
+
+            if([inodeR3 + 4] == EXCLUSIVE
+               && R8 != [inodeR3 + 3]
+               && R8 != 1) then
+
+                [[PTBR + 2 * ((userSP - 1) / 512)] * 512
+                + ((userSP - 1) % 512)] = -3;
+
+            else
+
+                // ------------------------------------------------
+                // Acquire inode lock
+                // ------------------------------------------------
+
+                multipush(R1,R2,R3,R4,R5,R6);
+
+                R1 = ACQUIRE_INODE;
+                R2 = [FileTableEntry];
+                R3 = [SYSTEM_STATUS_TABLE + 1];
+
+                call MOD_0;
+
+                multipop(R1,R2,R3,R4,R5,R6);
+
+                // Check acquire result
+                if(R0 != 0) then
+
+                    [[PTBR + 2 * ((userSP - 1) / 512)] * 512
+                    + ((userSP - 1) % 512)] = -1;
+
+                else
+
+                    // ------------------------------------------------
+                    // File full check
+                    // ------------------------------------------------
+
+                    if([FileTableEntry + 2] == MAX_FILE_SIZE) then
+
+                        multipush(R1,R2,R3,R4,R5,R6);
+
+                        R1 = RELEASE_INODE;
+                        R2 = [FileTableEntry];
+                        R3 = [SYSTEM_STATUS_TABLE + 1];
+
+                        call MOD_0;
+
+                        multipop(R1,R2,R3,R4,R5,R6);
+
+                        [[PTBR + 2 * ((userSP - 1) / 512)] * 512
+                        + ((userSP - 1) % 512)] = -2;
+
+                    else
+
+                        // ------------------------------------------------
+                        // Allocate new block if needed
+                        // ------------------------------------------------
+
+                        if([FileTableEntry + 2] % 512 == 0
+                           && [inodeR3 + 2]
+                              == [FileTableEntry + 2]) then
+
+                            multipush(R1,R2,R3,R4,R5,R6);
+
+                            R1 = GET_FREE_BLOCK;
+
+                            call MOD_2;
+
+                            multipop(R1,R2,R3,R4,R5,R6);
+
+                            if(R0 == -1) then
+
+                                // No disk space
+
+                                multipush(R1,R2,R3,R4,R5,R6);
+
+                                R1 = RELEASE_INODE;
+                                R2 = [FileTableEntry];
+                                R3 = [SYSTEM_STATUS_TABLE + 1];
+
+                                call MOD_0;
+
+                                multipop(R1,R2,R3,R4,R5,R6);
+
+                                [[PTBR + 2 * ((userSP - 1) / 512)]
+                                * 512
+                                + ((userSP - 1) % 512)] = -2;
+
+                                SP = userSP;
+
+                                [PROCESS_TABLE
+                                + [SYSTEM_STATUS_TABLE + 1]
+                                * 16 + 9] = 0;
+
+                                ireturn;
+
+                            else
+
+                                // Store allocated block number
+
+                                [inodeR3 + 8
+                                + ([FileTableEntry + 2] / 512)]
+                                = R0;
+
+                            endif;
+
+                        endif;
+
+
+                        // ------------------------------------------------
+                        // Write word to buffer
+                        // ------------------------------------------------
+
+                        multipush(R1,R2,R3,R4,R5,R6);
+
+                        R1 = BUFFERED_WRITE;
+
+                        R2 =
+                            [inodeR3 + 8
+                            + ([FileTableEntry + 2] / 512)];
+
+                        R4 = word;
+
+                        R3 =
+                            [FileTableEntry + 2] % 512;
+
+                        call MOD_3;
+
+                        multipop(R1,R2,R3,R4,R5,R6);
+
+
+                        // ------------------------------------------------
+                        // Update file size if needed
+                        // ------------------------------------------------
+
+                        if([FileTableEntry + 2]
+                           == [inodeR3 + 2]) then
+
+                            [inodeR3 + 2]
+                                = [inodeR3 + 2] + 1;
+
+                            [ROOT_FILE
+                            + [FileTableEntry] * 8 + 1]
+                                =
+                                [ROOT_FILE
+                                + [FileTableEntry] * 8 + 1]
+                                + 1;
+
+                        endif;
+
+
+                        // Advance file pointer
+                        [FileTableEntry + 2]
+                            = [FileTableEntry + 2] + 1;
+
+
+                        // ------------------------------------------------
+                        // Release inode
+                        // ------------------------------------------------
+
+                        multipush(R1,R2,R3,R4,R5,R6);
+
+                        R1 = RELEASE_INODE;
+                        R2 = [FileTableEntry];
+                        R3 = [SYSTEM_STATUS_TABLE + 1];
+
+                        call MOD_0;
+
+                        multipop(R1,R2,R3,R4,R5,R6);
+
+
+                        // Return success
+
+                        [[PTBR + 2 * ((userSP - 1) / 512)]
+                        * 512
+                        + ((userSP - 1) % 512)] = 0;
+
+                    endif;
+
+                endif;
+
+            endif;
+
+        endif;
+
+    endif;
+
 endif;
 
-endif;
-SP=userSP;
-[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+
+// ------------------------------------------------------------
+// Restore user stack and reset MODE_FLAG
+// ------------------------------------------------------------
+
+SP = userSP;
+
+[PROCESS_TABLE
++ [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+
 ireturn;

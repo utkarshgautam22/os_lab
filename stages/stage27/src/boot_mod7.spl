@@ -507,6 +507,7 @@ while (R2 < 16) do
     R3 = PROCESS_TABLE + R2 * 16;
 
     [R3] = 0;
+    [R3+6]=0;
 
     R2 = R2 + 1;
 

@@ -68,10 +68,10 @@ if(functionNum==SWAP_IN) then
         // Update system swap statistics
         [SYSTEM_STATUS_TABLE + 4] = [SYSTEM_STATUS_TABLE + 4] - 1;
         // Paging operation finished
-        [SYSTEM_STATUS_TABLE + 5] = -1;
+        [SYSTEM_STATUS_TABLE + 5] = 0;
     else
         // No swapped READY process found
-        [SYSTEM_STATUS_TABLE + 5] = -1;
+        [SYSTEM_STATUS_TABLE + 5] = 0;
     endif;
     return;
 endif;
@@ -91,7 +91,7 @@ if(functionNum == SWAP_OUT) then
             if([R8 + 4] == WAIT_PROCESS) then
                 break;
             endif;
-            if([R8 + 4] == WAIT_SEMAPHORE) then
+            if(R6==15 && [R8 + 4] == WAIT_SEMAPHORE) then
                 R6 = R3;
             endif;
             if([R8] > R4) then
@@ -113,7 +113,7 @@ if(functionNum == SWAP_OUT) then
                 R4 = R5;
             else
                 // No process eligible for swapping
-                [SYSTEM_STATUS_TABLE + 5] = -1;
+                [SYSTEM_STATUS_TABLE + 5] = 0;
                 return;
             endif;
         endif;
@@ -178,7 +178,7 @@ if(functionNum == SWAP_OUT) then
             multipop(R1,R2,R3,R4,R5,R6,R7);
             // Invalidate page entry
             [R5+2*R7] = -1;
-            [R5 + 2 * R6+1] = "0000";
+            [R5 + 2 * R7+1] = "0000";
         endif;
         R6 = R6 + 1;
     endwhile;
@@ -188,6 +188,6 @@ if(functionNum == SWAP_OUT) then
     // Increment swap count
     [SYSTEM_STATUS_TABLE + 4] = [SYSTEM_STATUS_TABLE + 4] + 1;
     // Reset paging status (swap complete)
-    [SYSTEM_STATUS_TABLE + 5] = -1;
+    [SYSTEM_STATUS_TABLE + 5] = 0;
     return;
 endif;

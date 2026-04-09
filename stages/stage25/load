@@ -27,6 +27,10 @@ load --int=15 /home/ug/Desktop/myexpos/stages/stage25/shutdown_int15.xsm
 rm asgn1.xsm
 rm asgn2.xsm
 rm asgn3.xsm
+rm asgn4.xsm
+rm numbers.dat
+load --data /home/ug/Desktop/myexpos/stages/stage24/src/numbers.dat
 load --exec /home/ug/Desktop/myexpos/stages/stage25/asgn1.xsm
 load --exec /home/ug/Desktop/myexpos/stages/stage25/asgn2.xsm
 load --exec /home/ug/Desktop/myexpos/stages/stage25/asgn3.xsm
+load --exec /home/ug/Desktop/myexpos/stages/stage25/asgn4.xsm

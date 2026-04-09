@@ -20,7 +20,7 @@ SP =
         + [SYSTEM_STATUS_TABLE + 1] * 16 + 11] * 512;
 
 
-
+R10=PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 ;
 // ======================================================
 // ================= CREATE SYSTEM CALL =================
 // ======================================================
@@ -28,8 +28,7 @@ SP =
 if (syscall == INT_CREATE) then
 
     // Set MODE_FLAG = 1 (CREATE)
-    [PROCESS_TABLE
-        + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = R1;
+    [R10+ 9] = R1;
 
 
 
@@ -99,9 +98,7 @@ if (syscall == INT_CREATE) then
             [inodeR4 + 2] = 0;         // file size
 
             // user id
-            [inodeR4 + 3] =
-                [PROCESS_TABLE
-                    + [SYSTEM_STATUS_TABLE + 1] * 16 + 3];
+            [inodeR4 + 3] =[R10 + 3];
 
             [inodeR4 + 4] = Permission;
 
@@ -121,9 +118,7 @@ if (syscall == INT_CREATE) then
             [rootR4]     = FileName;
             [rootR4 + 1] = 0;          // size
             [rootR4 + 2] = DATA;
-            [rootR4 + 3] =
-                [PROCESS_TABLE
-                    + [SYSTEM_STATUS_TABLE + 1] * 16 + 3];
+            [rootR4 + 3] = [USER_TABLE +2*[R10 + 3]];
             [rootR4 + 4] = Permission;
 
 
@@ -175,8 +170,7 @@ endif;
 if (syscall == INT_DELETE) then
 
     // Set MODE_FLAG = DELETE
-    [PROCESS_TABLE
-        + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = syscall;
+    [R10 + 9] = syscall;
 
 
 
@@ -220,9 +214,7 @@ if (syscall == INT_DELETE) then
 
         if ([inodeR3] == DATA) then
 
-            R2 =
-                [PROCESS_TABLE
-                    + [SYSTEM_STATUS_TABLE + 1] * 16 + 3];
+            R2 =[R10 + 3];
 
 
 
@@ -250,8 +242,9 @@ if (syscall == INT_DELETE) then
                 multipush(R0, R1, R2, R3, R7);
 
                 R1 = ACQUIRE_INODE;
-                R3 = R2;
                 R2 = R3;
+                R3 = [SYSTEM_STATUS_TABLE + 1];
+                
 
                 call MOD_0;
 
@@ -347,8 +340,9 @@ if (syscall == INT_DELETE) then
                     multipush(R0, R1, R2, R3);
 
                     R1 = RELEASE_INODE;
-                    R3 = R2;
                     R2 = R3;
+                    R3 = [SYSTEM_STATUS_TABLE + 1];
+                    
 
                     call MOD_0;
 
@@ -368,8 +362,9 @@ if (syscall == INT_DELETE) then
                     multipush(R0, R1, R2, R3);
 
                     R1 = RELEASE_INODE;
-                    R3 = R2;
                     R2 = R3;
+                    R3 = [SYSTEM_STATUS_TABLE + 1];
+                    
 
                     call MOD_0;
 

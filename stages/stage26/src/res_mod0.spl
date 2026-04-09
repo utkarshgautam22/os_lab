@@ -1,149 +1,274 @@
+// Resource Manager Module
+
 alias functionNum R1;
 alias currentPID R2;
 
+// ------------------------------------------------------------
+// ACQUIRE TERMINAL (functionNum == 8)
+// ------------------------------------------------------------
 if(functionNum==8) then
-R3=[TERMINAL_STATUS_TABLE];
-while(R3==1) do 
-[PROCESS_TABLE+16*currentPID+4]=WAIT_TERMINAL;
-multipush(R1,R2,R3);
-call MOD_5;
-multipop(R1,R2,R3);
-R3=[TERMINAL_STATUS_TABLE];
-endwhile;
-[TERMINAL_STATUS_TABLE]=1;
-[TERMINAL_STATUS_TABLE+1]=currentPID;
-return;
+
+    R3=[TERMINAL_STATUS_TABLE];
+
+    // Wait while terminal is locked
+    while(R3==1) do
+        [PROCESS_TABLE+16*currentPID+4]=WAIT_TERMINAL;
+
+        multipush(R1,R2,R3);
+        call MOD_5;        // context switch
+        multipop(R1,R2,R3);
+
+        R3=[TERMINAL_STATUS_TABLE];
+    endwhile;
+
+    // Lock terminal
+    [TERMINAL_STATUS_TABLE]=1;
+    [TERMINAL_STATUS_TABLE+1]=currentPID;
+
+    return;
 endif;
 
 
+// ------------------------------------------------------------
+// RELEASE TERMINAL (functionNum == 9)
+// ------------------------------------------------------------
 if(functionNum==9) then
+
+    // Check ownership
     if(currentPID!=[TERMINAL_STATUS_TABLE+1]) then
         R0=-1;
         return;
     endif;
-[TERMINAL_STATUS_TABLE]=0;
-R3=0;
-while(R3<16) do
-if([PROCESS_TABLE+16*R3+4]==WAIT_TERMINAL) then
-[PROCESS_TABLE+16*R3+4]=READY;
-endif;
-R3=R3+1;
-endwhile;
-R0=0;
-return;
-endif;
 
-if(functionNum==3) then
-while([DISK_STATUS_TABLE]==1) do
-[PROCESS_TABLE+16*currentPID+4]=WAIT_DISK;
-multipush(R1,R2,R3);
-call MOD_5;
-multipop(R1,R2,R3);
-endwhile;
-[DISK_STATUS_TABLE]=1;
-[DISK_STATUS_TABLE+4]=currentPID;
-return;
-endif;
+    // Unlock terminal
+    [TERMINAL_STATUS_TABLE]=0;
 
-if(functionNum==ACQUIRE_SEMAPHORE) then
-R3=0;
-while(R3<MAX_SEM_COUNT) do
-if([SEMAPHORE_TABLE+4*R3+1]==0) then
-[SEMAPHORE_TABLE+4*R3+1]=1;
-break;
-endif;
-R3=R3+1;
-endwhile;
-R0=R3;
-return;
-endif;
+    // Wake waiting processes
+    R3=0;
+    while(R3<16) do
+        if([PROCESS_TABLE+16*R3+4]==WAIT_TERMINAL) then
+            [PROCESS_TABLE+16*R3+4]=READY;
+        endif;
+        R3=R3+1;
+    endwhile;
 
-if(functionNum==RELEASE_SEMAPHORE) then
-if([SEMAPHORE_TABLE+4*R2]==R3) then
-[SEMAPHORE_TABLE+4*R2]=-1;
-R4=0;
-while(R4<16) do
-if([PROCESS_TABLE+16*R3+4]==WAIT_SEMAPHORE && [PROCESS_TABLE+16*R3+5]==R2) then
-[PROCESS_TABLE+16+R3]=READY;
-endif;
-R4=R4+1;
-endwhile;
-endif;
-[SEMAPHORE_TABLE+4*R2+1]=[SEMAPHORE_TABLE+4*R2+1]-1;
-return;
-endif;
-
-if(R1==ACQUIRE_INODE) then
-alias inodeidx R2;
-alias pid R3;
-while([FILE_STATUS_TABLE+4*inodeidx]!=-1) do
-    [PROCESS_TABLE+16*pid+4]=WAIT_FILE;
-    [PROCESS_TABLE+16*pid+5]=inodeidx;
-    multipush(R1,R2,R3);
-    call MOD_5;
-    multipop(R1,R2,R3);
-endwhile;
-if([INODE_TABLE+16*inodeidx+1]!=-1) then
-    [FILE_STATUS_TABLE+4*inodeidx]=pid;
-else
-    R0=-1;
-endif;
     R0=0;
     return;
 endif;
 
-if(R1==RELEASE_INODE) then
-alias inodeidx R2;
-alias pid R3;
-if([FILE_STATUS_TABLE+4*inodeidx]==pid) then
-[FILE_STATUS_TABLE+4*inodeidx]=-1;
-R4=0;
-while(R4<MAX_PROC_NUM) do
-if([PROCESS_TABLE+16*R4+4]==WAIT_FILE && [PROCESS_TABLE+16*R4+5]==inodeidx) then
-[PROCESS_TABLE+16*R4+4]=READY;
-endif;
-R4=R4+1;
-endwhile;
-else
-R0=-1;
-endif;
-R0=0;
-return;
-endif;
 
-if(functionNum==ACQUIRE_BUFFER) then //1
-alias bufno R2;
-alias pid R3;
+// ------------------------------------------------------------
+// ACQUIRE DISK (functionNum == 3)
+// ------------------------------------------------------------
+if(functionNum==3) then
 
-while([BUFFER_TABLE+4*bufno+2]!=-1) do
-[PROCESS_TABLE+16*pid+4]=WAIT_BUFFER;
-[PROCESS_TABLE+16*pid+5]=bufno;
-multipush(R1,R2,R3);
-call MOD_5;
-multipop(R1,R2,R3);
-endwhile;
+    // Wait while disk is locked
+    while([DISK_STATUS_TABLE]==1) do
+        [PROCESS_TABLE+16*currentPID+4]=WAIT_DISK;
 
-[BUFFER_TABLE+4*bufno+2]=pid;
-return;
-endif;
+        multipush(R1,R2,R3);
+        call MOD_5;        // context switch
+        multipop(R1,R2,R3);
+    endwhile;
 
-if(functionNum==RELEASE_BUFFER) then //2
-alias bufno R2;
-alias pid R3;
+    // Lock disk
+    [DISK_STATUS_TABLE]=1;
+    [DISK_STATUS_TABLE+4]=currentPID;
 
-if([BUFFER_TABLE+4*bufno+2]!=pid) then
-    R0=-1;
     return;
 endif;
-[BUFFER_TABLE+4*bufno+2]=-1;
-R1=0;
-while(R1<16) do
-    if([PROCESS_TABLE+16*R1+4]==WAIT_BUFFER && [PROCESS_TABLE+16*R1+5]==bufno) then
-    [PROCESS_TABLE+16*pid+4]=READY;
-    [PROCESS_TABLE+16*pid+5]=-1;
+
+
+// ------------------------------------------------------------
+// ACQUIRE SEMAPHORE
+// ------------------------------------------------------------
+if(functionNum==ACQUIRE_SEMAPHORE) then
+
+    R3=0;
+
+    // Find free semaphore entry
+    while(R3<MAX_SEM_COUNT) do
+        if([SEMAPHORE_TABLE+4*R3+1]==0) then
+            [SEMAPHORE_TABLE+4*R3+1]=1;
+            break;
+        endif;
+        R3=R3+1;
+    endwhile;
+
+    // Return index or failure
+    if(R3==MAX_SEM_COUNT) then
+        R0=-1;
+    else
+        R0=R3;
     endif;
-    R1=R1+1;
-endwhile;
-R0=0;
-return;
+
+    return;
+endif;
+
+
+// ------------------------------------------------------------
+// RELEASE SEMAPHORE
+// ------------------------------------------------------------
+if(functionNum==RELEASE_SEMAPHORE) then
+
+    // Unlock semaphore if owned
+    if([SEMAPHORE_TABLE+4*R2]==R3) then
+
+        [SEMAPHORE_TABLE+4*R2]=-1;
+
+        // Wake waiting processes
+        R4=0;
+        while(R4<16) do
+            if([PROCESS_TABLE+16*R4+4]==WAIT_SEMAPHORE &&
+               [PROCESS_TABLE+16*R4+5]==R2) then
+
+                [PROCESS_TABLE+16*R4+4]=READY;
+            endif;
+
+            R4=R4+1;
+        endwhile;
+    endif;
+
+    // Decrement process count
+    [SEMAPHORE_TABLE+4*R2+1]=
+        [SEMAPHORE_TABLE+4*R2+1]-1;
+
+    return;
+endif;
+
+
+// ------------------------------------------------------------
+// ACQUIRE INODE
+// ------------------------------------------------------------
+if(R1==ACQUIRE_INODE) then
+
+    alias inodeidx R2;
+    alias pid R3;
+
+    
+    if([FILE_STATUS_TABLE+4*inodeidx]==pid) then
+        R0=0;
+        return;
+    endif;
+    // Wait while inode is locked
+    while([FILE_STATUS_TABLE+4*inodeidx]!=-1) do
+
+        [PROCESS_TABLE+16*pid+4]=WAIT_FILE;
+        [PROCESS_TABLE+16*pid+5]=inodeidx;
+
+        multipush(R1,R2,R3);
+        call MOD_5;        // context switch
+        multipop(R1,R2,R3);
+
+    endwhile;
+
+    // Check inode validity
+    if([INODE_TABLE+16*inodeidx+1]!=-1) then
+        [FILE_STATUS_TABLE+4*inodeidx]=pid;
+        R0=0;
+    else
+        R0=-1;
+    endif;
+
+    return;
+endif;
+
+
+// ------------------------------------------------------------
+// RELEASE INODE
+// ------------------------------------------------------------
+if(R1==RELEASE_INODE) then
+
+    alias inodeidx R2;
+    alias pid R3;
+
+    // Check ownership
+    if([FILE_STATUS_TABLE+4*inodeidx]==pid) then
+
+        // Unlock inode
+        [FILE_STATUS_TABLE+4*inodeidx]=-1;
+
+        // Wake waiting processes
+        R4=0;
+        while(R4<MAX_PROC_NUM) do
+
+            if([PROCESS_TABLE+16*R4+4]==WAIT_FILE &&
+               [PROCESS_TABLE+16*R4+5]==inodeidx) then
+
+                [PROCESS_TABLE+16*R4+4]=READY;
+            endif;
+
+            R4=R4+1;
+        endwhile;
+
+        R0=0;
+
+    else
+        R0=-1;
+    endif;
+
+    return;
+endif;
+
+
+// ------------------------------------------------------------
+// ACQUIRE BUFFER
+// ------------------------------------------------------------
+if(functionNum==ACQUIRE_BUFFER) then // 1
+
+    alias bufno R2;
+    alias pid R3;
+
+    // Wait while buffer is locked
+    while([BUFFER_TABLE+4*bufno+2]!=-1) do
+
+        [PROCESS_TABLE+16*pid+4]=WAIT_BUFFER;
+        [PROCESS_TABLE+16*pid+5]=bufno;
+
+        multipush(R1,R2,R3);
+        call MOD_5;        // context switch
+        multipop(R1,R2,R3);
+
+    endwhile;
+
+    // Lock buffer
+    [BUFFER_TABLE+4*bufno+2]=pid;
+
+    return;
+endif;
+
+
+// ------------------------------------------------------------
+// RELEASE BUFFER
+// ------------------------------------------------------------
+if(functionNum==RELEASE_BUFFER) then // 2
+
+    alias bufno R2;
+    alias pid R3;
+
+    // Check ownership
+    if([BUFFER_TABLE+4*bufno+2]!=pid) then
+        R0=-1;
+        return;
+    endif;
+
+    // Unlock buffer
+    [BUFFER_TABLE+4*bufno+2]=-1;
+
+    // Wake waiting processes
+    R1=0;
+    while(R1<16) do
+
+        if([PROCESS_TABLE+16*R1+4]==WAIT_BUFFER &&
+           [PROCESS_TABLE+16*R1+5]==bufno) then
+
+            [PROCESS_TABLE+16*R1+4]=READY;
+            [PROCESS_TABLE+16*R1+5]=-1;
+        endif;
+
+        R1=R1+1;
+    endwhile;
+
+    R0=0;
+    return;
 endif;

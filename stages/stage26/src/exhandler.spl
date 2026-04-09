@@ -1,51 +1,157 @@
-[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=-1;
-[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+13]=SP;
-SP=[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11]*512-1;
+// Save user stack pointer
+[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+13] = SP;
+
+// Switch to kernel stack
+SP = [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11]*512 - 1;
+
+// Save CPU context
 backup;
+
+
+
+// Save previous mode
+R3 = [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9];
+
+// Set MODE_FLAG = -1 (exception handler)
+[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9] = -1;
+
+
+
 alias userSP R0;
-R0=SP;
+
+// Store current stack pointer
+R0 = SP;
+
+
+
+// Save faulting instruction pointer
 multipush(EIP);
-if(EC!=0 || userSP==PTLR*512-1) then
-print "got_ex";
-print EC;
-print EIP;
-breakpoint;
-R1=3;
-R2=[SYSTEM_STATUS_TABLE+1];
-call MOD_1;
-call MOD_5;
+
+
+
+// ---------- NON PAGE FAULT EXCEPTION ---------- */
+
+if(EC != 0 || userSP == PTLR*512 - 1) then
+
+    // Display exception cause
+
+    if(EC == 1) then
+        print "Illegal instruction";
+    endif;
+
+    if(EC == 2) then
+        print "Illegal memory access";
+    endif;
+
+    if(EC == 3) then
+        print "Arithmetic exception";
+    endif;
+
+    // Print exception instruction pointer
+    print EIP;
+    print "mode: ";
+    print R3;
+    breakpoint;
+
+
+
+    // Terminate process
+    R1 = 3;
+    R2 = [SYSTEM_STATUS_TABLE+1];
+    call MOD_1;
+
+
+
+    // Switch to scheduler
+    call MOD_5;
+
 endif;
 
 
-if(EPN>3) then
-multipush(R1,R2,R3);
-R1=5;
-R2=[DISK_MAP_TABLE+10*[SYSTEM_STATUS_TABLE+1]+EPN];
-call MOD_2;
-[PTBR+2*EPN]=R0;
-[PTBR+2*EPN+1]="1100";
-multipop(R1,R2,R3);
+
+//---------- PAGE FAULT HANDLING ---------- */
+
+
+
+// Code page fault
+if(EPN > 3 && EPN < 8) then
+
+    multipush(R1,R2,R3);
+
+        // Get disk block for code page
+        R1 = 5;
+        R2 = [DISK_MAP_TABLE+10*[SYSTEM_STATUS_TABLE+1]+EPN];
+
+        // Load code page
+        call MOD_2;
+
+        // Update page table
+        [PTBR+2*EPN]   = R0;
+        [PTBR+2*EPN+1] = "1100";
+
+    multipop(R1,R2,R3);
+
 endif;
 
-if(EPN<4) then
-multipush(R1,R2,R3);
-R1=1;
-call MOD_2;
-multipop(R1,R2,R3);
-[PTBR+2*EPN]=R0;
-[PTBR+2*EPN+1]="1110";
-multipush(R1,R2,R3);
-R1=1;
-call MOD_2;
-[PTBR+2*EPN+2]=R0;
-[PTBR+2*EPN+3]="1110";
-multipop(R1,R2,R3);
+
+
+// Heap page fault
+if(EPN < 4 && EPN > 1) then
+
+    multipush(R1,R2,R3);
+
+        // Allocate first heap page
+        R1 = 1;
+        call MOD_2;
+
+    multipop(R1,R2,R3);
+
+    [PTBR+2*EPN]   = R0;
+    [PTBR+2*EPN+1] = "1110";
+
+
+
+    multipush(R1,R2,R3);
+
+        // Allocate second heap page
+        R1 = 1;
+        call MOD_2;
+
+        [PTBR+2*EPN+2]   = R0;
+        [PTBR+2*EPN+3]   = "1110";
+
+    multipop(R1,R2,R3);
+
 endif;
 
+
+
+// Restore instruction pointer
 multipop(EIP);
-[PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1]+9]=0;
+
+
+
+// Reset MODE_FLAG
+[PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1]+9] = 0;
+
+
+
+// Restore CPU context
 restore;
-SP=[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+13];
-SP=SP+1;
-[[PTBR+2*(SP/512)]*512+SP%512]=EIP;
+
+
+
+// Restore user stack pointer
+SP = [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+13];
+
+
+
+// Push EIP back to user stack
+SP = SP + 1;
+
+[[PTBR+2*(SP/512)]*512 + SP%512] = EIP;
+
+
+
+// Return to user mode
 ireturn;

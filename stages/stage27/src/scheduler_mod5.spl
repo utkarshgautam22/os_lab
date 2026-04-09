@@ -18,7 +18,7 @@ CurProcessTable = PROCESS_TABLE+CurId*16;
 
 alias NewId R2;
 // Check if paging operation is in progress
-if([SYSTEM_STATUS_TABLE+5]!=-1) then
+if([SYSTEM_STATUS_TABLE+5]!=0) then
     R3=PROCESS_TABLE+16*15+4;
 
     // If swapper daemon is ready, schedule it
@@ -44,13 +44,14 @@ else
         endif;
 
     endwhile;
+    // Wrap around to idle process if end reached
+    if(NewId>15) then
+        NewId=0;
+    endif;
 
 endif;
 
-// Wrap around to idle process if end reached
-if(NewId==16) then
-    NewId=0;
-endif;
+
 // Load process table entry of selected process
 CurProcessTable = PROCESS_TABLE+NewId*16;
 
