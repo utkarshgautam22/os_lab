@@ -12,6 +12,7 @@ int main()
             write("File Deleted");
         else
             write("File Not Deleted");
+        endif;
         return 0;
     end
 }

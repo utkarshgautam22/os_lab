@@ -11,14 +11,19 @@ int main()
         read(file2);
 		fdr=exposcall("Open",file1);
         fdw=exposcall("Open",file2);
-		if(fdr>=0 && fdw>=0) then
-			while(ret == 0) do
-				ret=exposcall("Read",fdr,data);
-				if(ret == 0) then
-                    ret = exposcall("Write",fdw,data);
-				endif;
-			endwhile;
-			fd=exposcall("Close",fd);
+		if(fdr>=0) then
+			if(fdw>=0) then
+				while(ret == 0) do
+					ret=exposcall("Read",fdr,data);
+					if(ret == 0) then
+						ret = exposcall("Write",fdw,data);
+					endif;
+				endwhile;
+				fdr=exposcall("Close",fdr);
+				fdw=exposcall("Close",fdw);
+			else
+				write("not open");
+			endif;
 		else
 			write("not open");
 		endif;
